@@ -15,12 +15,61 @@ date: "2025-09-12"
 Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks,
 kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)? 
 
-Pseido-kods:
-1. 
 
+Algoritma apraksts:
+
+1. **Iegūst vecuma grupas ≥65 gadi**  
+   - Atlasa tikai tās kolonnas, kur vecuma intervāls sākas no 65 gadiem (`Vec65_69`, `Vec70_74` utt.).
+
+2. **Aprēķina katras vecuma grupas "vidējo vecumu"**  
+   - Pieņem, ka visi cilvēki vecuma intervālā dzīvo **vidēji vecuma intervāla viduspunktu**.  
+   - Piemēram, `Vec65_69` → vidējais vecums = 67 gadi.
+
+3. **Aprēķina kopējo cilvēku skaitu ≥65 gadi**  
+   - Sumē visus mirušos šajās vecuma grupās (pa dzimumiem).
+
+4. **Aprēķina vidējo atlikušās dzīves ilgumu**  
+   - Formulas aprēķins:  
+   \[
+   \text{Vidējais atlikušais dzīves ilgums} = \frac{\sum (\text{mirušo skaits} \times \text{vidējais vecums grupā}) - 65 \times \text{kopējais skaits}}{\text{kopējais skaits}}
+   \]
+
+5. **Rezultāts**  
+   - Vidējais dzīves ilgums pēc 65 gadu vecuma katram dzimumam.
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+
+
+# Otrais uzdevums
+
+
+Agoritms:
+
+
+Ievade: tabula ar kolonnām: Sex, Vec0_4, Vec5_9, Vec10_14, ...
+1. Apvienot visus dzimumus, saskaitot pa vecuma intervāliem.
+2. Aprēķināt kopējo mirušo skaitu visās vecuma grupās.
+3. Katram vecuma intervālam:
+     - atrast skaitu šajā grupā
+     - aprēķināt proporciju = (skaits / kopējais) * 100
+4. Izvadīt tabulu vai histogrammu ar proporcijām.
+
+
+
+
+
+# Trešais uzdevums 
+Ievade: histogramma ar kolonnu Vecuma_grupa un Proporcija (mirušo % no 100)
+1. Sakārtot vecuma grupas pēc kārtas (0–4, 5–9, …, 90–94).
+2. Inicializēt sākuma populāciju = 100.
+3. Katram vecuma intervālam:
+     a) Paņemt proporciju (mirušo % no 100)
+     b) Atņemt to no “dzīvo” skaita
+     c) Saglabāt rezultātu kā “cik dzīvo šajā vecumā”
+4. Pārrēķināt uz procentiem (sadalījums uz 100).
+5. Rezultātu var izmantot, lai uztaisītu histogrammu “iedzīvotāju vecuma spektrs”.
