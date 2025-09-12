@@ -1,14 +1,20 @@
 ---
-author: "Jekaterīna Butkeviča"
+title: "1.mājas darbs: datizrace kapsētā"
+author: "Jekaterīna Butkeviča,"
 date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
 output: github_document
 ---
 
-# Datu avots 
-Man neizdevas atras daubāzi, kur būtu pieejami atsevišķi ieraksti ar precīžu vecumu vai dzimšanas un mirstības gadu, savukārt manuāla kopēšanas no https://timenote.info/ neveido dabisku izlasi, tādēļ es izmantoju datus no Pasaules [Veselības organizācijas](https://www.who.int/) (World Health Organization), kas (izvelētais fails) satur informāciju par mirušo cilvēku sakitu no 1988 līdz 2002 gadam pa vecuma grupam. Vecuma grupas nesakrīt pilnība ar uzdevuma apsaktītajam, tomēr, manuprāt tas neietekme izpildes algoritmus. Dati lejupielādei pieejami [šeit](https://www.who.int/data/data-collection-tools/who-mortality-database).
+Ar šāda veida uzdevumiem sastapos pirmo reizi un neesmu pārliecināta, kā to parasti noformē Datorikas fakultātē. Tādēļ uzdevumu noformēju līdzīgi tam, kā pie mums – Bioloģijas fakultātē – parasti tiek sagatavoti līdzīgi uzdevumi. Vai šis noformējums atbilst sagaidītajam? Būšu ļoti pateicīga par komentāriem un ieteikumiem attiecībā uz uzdevuma iesegšanas formātu.
 
-# Datu sakartošana
-Datubaze satur informāciju par mirušo skaitu gadā, katrā vecuma grupā, sadalot to pa dzimumiem un miršanas iemesliem. Tādēļ no sākuma sakartoju datus. Tas nebija daļa no uzdevuma, tādēl detalizēti neskaidrošu.
+
+## Datu avots
+Man neizdevās atrast datubāzi, kur būtu pieejami atsevišķi ieraksti ar precīzu vecumu vai dzimšanas un mirstības gadu. Savukārt manuāla datu kopēšana no https://timenote.info/ neveido dabisku izlasi. Tādēļ es izmantoju datus no Pasaules [Veselības organizācijas](https://www.who.int/) (World Health Organization), kur (izvēlētais fails) satur informāciju par mirušo cilvēku skaitu no 1988. līdz 2002. gadam pa vecuma grupām. Vecuma grupas nesakrīt pilnībā ar uzdevumā apskatītajām, tomēr, manuprāt, tas neietekmē algoritmu izpildi.
+Dati lejupielādei pieejami [šeit](https://www.who.int/data/data-collection-tools/who-mortality-database).
+
+
+## Datu sakārtošana
+Datubāze satur informāciju par mirušo skaitu gadā katrā vecuma grupā, sadalot to pēc dzimuma un mirstības iemesliem. Tādēļ sākumā sakārtoju datus. Tā kā šī darbība nebija uzdevuma daļa, to neskaidrošu detalizēti.
 
 ```{r, pakotnes, include=FALSE}
 if (!require("readxl")) install.packages("readxl"); library(readxl)
@@ -57,7 +63,7 @@ apvienoti_dati <- apvienoti_dati %>%
 
 ```
 
-Iegūta datu tabula satur mirušo cilvēku skaitu katrā vecumgrupā katram dzimumam atsevišķi.
+Iegūtā datu tabula satur mirušo cilvēku skaitu katrā vecuma grupā, sadalot to pa dzimumiem.
 
 ```{r, apvienoti_dati_head, }
 head(apvienoti_dati)
@@ -66,36 +72,31 @@ head(apvienoti_dati)
 
 
 
-# Pirmais uzdevums
-Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks,
-kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)? 
+## Pirmais uzdevums
+**Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks, kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)**
 
 
 Algoritma apraksts:
 
-1. Atlasīt tikai tās kolonnas, kur vecuma intervāls sākas no 65 gadiem (`Vec65_69`, `Vec70_74` utt.).
-
-2. Aprēķināt katras vecuma grupas "vidējo vecumu", jo precīzu vecumu mēs nezinam, tādēļ šāda vējda mēgīnām līdzsvarot. Piemēram, `Vec65_69` → vidējais vecums = 67 gadi.
-
+1. Atlasīt tikai tās kolonnas, kas satur informāciju par cilvēkiem, kuri ietipst vecuma intervāla 65+ gadi (`Vec65_69`, `Vec70_74` utt.).
+2. Aprēķināt katras vecuma grupas vidējo vecuma vērtību, jo precīzu vecumu mēs nezinam, tādēļ šāda vējda mēgīnām līdzsvarot. Piemēram, `Vec65_69` → vidējais vecums = 67 gadi.
 3. Aprēķināt kopējo cilvēku skaitu ≥65 gadi. Sasumēt visus mirušos šajās vecuma grupās (pa dzimumiem).
-
 4. Aprēķināt vidējo atlikušās dzīves ilgumu pēc formulas:  
    \[
    \text{Videjais atlikusais dzives ilgums} = \frac{\sum (\text{miruso skaits} \times \text{videjais vecums grupa}) - 65 \times \text{kopejais skaits}}{\text{kopejais skaits}}
    \]
-
 5. Iegustāmais rezultāts: vidējais dzīves ilgums pēc 65 gadu vecuma katram dzimumam.
 
 
 
 
-Sākuma definējam interesējušos intervālus un aprēķinām katrā vēcuma intervāla vidējo vecuma vērtību.
+Sākumā definējam interesējošos vecuma intervālus un aprēķinām katra intervāla vidējo vecuma vērtību.
 ```{r, intervals, }
 vecuma_kolonnas <- c("Vec65_69","Vec70_74","Vec75_79","Vec80_84","Vec85_89","Vec90_94")
 vidus_vecums <- c(67,72,77,82,87,92)  # vidējie vecumi katrai grupai
 ```
 
-Apreķinām vidējo atlikušas dzīves ilgumu katram dzimumam
+Aprēķinām vidējo atlikušo dzīves ilgumu katram dzimumam.
 ```{r, task1, message=FALSE, warning=FALSE }
 rezultats1 <- apvienoti_dati %>%
   rowwise() %>%
@@ -113,8 +114,8 @@ rezultats1 <- apvienoti_dati %>%
 rezultats1
 ```
 
-# Otrais uzdevums
-Aprēķināja mirušo cilvēku vecumu sadalījumu pa vecuma grupām (histogrammu): cik no 100 cilvēkiem miruši attiecīgi vecumā 0-9, 10-19, 20-29, 30-39 utt.
+## Otrais uzdevums
+**Aprēķināja mirušo cilvēku vecumu sadalījumu pa vecuma grupām (histogrammu): cik no 100 cilvēkiem miruši attiecīgi vecumā 0-9, 10-19, 20-29, 30-39 utt.**
 
 Algoritma apraksts:
 
@@ -123,19 +124,19 @@ Algoritma apraksts:
 3. Katram vecuma intervālam aprēķinām proporciju = (skaits grupā / kopējais skaits) * 100
 
 
-Summejam abu dzimumu skaitus
+Summejam abu dzimumu skaitus.
 ```{r, summ_sexes}
 dati_kopa <- apvienoti_dati %>%
   select(-Sex) %>%       # atmet dzimumu
   summarise(across(everything(), sum, na.rm = TRUE))
 ```
 
-Aprēķinam kopējo mirušo skaitu
+Aprēķinam kopējo mirušo skaitu.
 ```{r, sum_all}
 total <- sum(dati_kopa)
 ```
 
-Pārvēršam datus "long" formā un aprēķinām proporciju
+Pārvēršam datus "long" formā un aprēķinām proporciju.
 ```{r, proporcija}
 proporcijas <- dati_kopa %>%
   pivot_longer(cols = everything(),
@@ -149,6 +150,8 @@ Rezultāts:
 ```{r, proporcija_izvade}
 proporcijas
 ```
+
+Rezultāta vizualizācija:
 
 ```{r, proporcija_grafiks, echo = FALSE}
 proporcijas <- proporcijas %>%
@@ -174,13 +177,12 @@ ggplot(proporcijas, aes(x = Vecuma_grupa, y = Proporcija)) +
 
 
 
-# Trešais uzdevums 
-
-No iegūtas histogrammas iegūt šobrīd dzīvojošo cilvēku vecumu spektru. 
+## Trešais uzdevums 
+**No iegūtas histogrammas iegūt šobrīd dzīvojošo cilvēku vecumu spektru.**
 
 1. Pārreiķināt uz sākotnējais skaits = 100.
-3. Katram vecuma intervālam: proporciju (mirušo % no 100) atņemt to no “dzīvo” cilvēku skaita.
-4. Pārrēķināt uz procentiem.
+2. Katram vecuma intervālam: proporciju (mirušo % no 100) atņemt to no “dzīvo” cilvēku skaita.
+3. Pārrēķināt uz procentiem.
 
 
 ```{r, dzivie}
@@ -198,7 +200,7 @@ Rezultāts:
 iedziv_spektrs
 ```
 
-
+Rezultāta vizualizācija:
 
 ```{r, dzivie_grafiks, echo = FALSE}
 ggplot(iedziv_spektrs, aes(x = Vecuma_grupa, y = Dzīvi)) +
