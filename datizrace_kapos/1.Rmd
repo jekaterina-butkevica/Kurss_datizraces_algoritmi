@@ -5,9 +5,64 @@ date: "2025-09-12"
 ---
 
 # Datu avots 
-
+Man neizdevas atras daubāzi, kur būtu pieejami atsevišķi ieraksti ar precīžu vecumu vai dzimšanas un mirstības gadu, savukārt manuāla kopēšanas no https://timenote.info/ neveido dabisku izlasi, tādēļ es izmantoju datus no Pasaules [Veselības organizācijas](https://www.who.int/) (World Health Organization), kas (izvelētais fails) satur informāciju par mirušo cilvēku sakitu no 1988 līdz 2002 gadam pa vecuma grupam. Vecuma grupas nesakrīt pilnība ar uzdevuma apsaktītajam, tomēr, manuprāt tas neietekme izpildes algoritmus. Dati lejupielādei pieejami [šeit](https://www.who.int/data/data-collection-tools/who-mortality-database).
 
 # Datu sakartošana
+Datubaze satur informāciju par mirušo skaitu gadā, katrā vecuma grupā, sadalot to pa dzimumiem un miršanas iemesliem. Tādēļ no sākuma sakartoju datus. Tas nebija daļa no uzdevuma, tādēl detalizēti neskaidrošu.
+
+```{r, pakotnes, include=FALSE}
+if (!require("readxl")) install.packages("readxl"); library(readxl)
+if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
+if (!require("tidyr")) install.packages("tidyr"); library(tidyr)
+if (!require("ggplot2")) install.packages("ggplot2"); library(ggplot2)
+if (!require("here")) install.packages("here"); library(here)
+```
+
+
+```{r, dati, message=FALSE, warning=FALSE}
+pirmie_dati <- read.csv(here("datizrace_kapos", "Morticd10_part1.csv"))
+
+dati <- pirmie_dati[pirmie_dati$Country == 4186,] # atlasu Latviju
+
+apvienoti_dati <- dati %>%
+  group_by(Sex) %>%         # grupēju pēc dzimuma
+  summarise(across(starts_with("Death"), sum, na.rm = TRUE))
+apvienoti_dati$Sex <- ifelse(apvienoti_dati$Sex == 1, "Vīrietis", "Sieviete")
+
+
+# Apvienot vecumu 0-4 gadi vienā intervālā, jo tie sniegti pa atsevišķiem gadiem
+apvienoti_dati$Vec0_4 <- rowSums(apvienoti_dati[, c(
+  "Deaths2", "Deaths3", "Deaths4", "Deaths5", "Deaths6"
+  )], na.rm = TRUE)
+
+# Izdzest liekas kolonnas
+apvienoti_dati <- apvienoti_dati %>%
+  select(-Deaths1, -Deaths2, -Deaths3, -Deaths4,
+         -Deaths5, -Deaths6,-Deaths25, -Deaths26)
+
+# Precizēt nosaukumus
+apvienoti_dati <- apvienoti_dati %>%
+  rename(
+    Vec5_9 = Deaths7, Vec10_14 = Deaths8, Vec15_19 = Deaths9,
+    Vec20_24 = Deaths10, Vec25_29 = Deaths11, Vec30_34 = Deaths12,
+    Vec35_39 = Deaths13, Vec40_44 = Deaths14, Vec45_49 = Deaths15,
+    Vec50_54 = Deaths16, Vec55_59 = Deaths17, Vec60_64 = Deaths18,
+    Vec65_69 = Deaths19, Vec70_74 = Deaths20, Vec75_79 = Deaths21,
+    Vec80_84 = Deaths22, Vec85_89 = Deaths23, Vec90_94 = Deaths24
+  )
+
+# Pareizā kolonnu secība 
+apvienoti_dati <- apvienoti_dati %>%
+  relocate(Vec0_4, .after = 1)
+
+```
+
+Iegūta datu tabula satur mirušo cilvēku skaitu katrā vecumgrupā katram dzimumam atsevišķi.
+
+```{r, apvienoti_dati_head, }
+head(apvienoti_dati)
+```
+
 
 
 
@@ -18,58 +73,158 @@ kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)?
 
 Algoritma apraksts:
 
-1. **Iegūst vecuma grupas ≥65 gadi**  
-   - Atlasa tikai tās kolonnas, kur vecuma intervāls sākas no 65 gadiem (`Vec65_69`, `Vec70_74` utt.).
+1. Atlasīt tikai tās kolonnas, kur vecuma intervāls sākas no 65 gadiem (`Vec65_69`, `Vec70_74` utt.).
 
-2. **Aprēķina katras vecuma grupas "vidējo vecumu"**  
-   - Pieņem, ka visi cilvēki vecuma intervālā dzīvo **vidēji vecuma intervāla viduspunktu**.  
-   - Piemēram, `Vec65_69` → vidējais vecums = 67 gadi.
+2. Aprēķināt katras vecuma grupas "vidējo vecumu", jo precīzu vecumu mēs nezinam, tādēļ šāda vējda mēgīnām līdzsvarot. Piemēram, `Vec65_69` → vidējais vecums = 67 gadi.
 
-3. **Aprēķina kopējo cilvēku skaitu ≥65 gadi**  
-   - Sumē visus mirušos šajās vecuma grupās (pa dzimumiem).
+3. Aprēķināt kopējo cilvēku skaitu ≥65 gadi. Sasumēt visus mirušos šajās vecuma grupās (pa dzimumiem).
 
-4. **Aprēķina vidējo atlikušās dzīves ilgumu**  
-   - Formulas aprēķins:  
+4. Aprēķināt vidējo atlikušās dzīves ilgumu pēc formulas:  
    \[
-   \text{Vidējais atlikušais dzīves ilgums} = \frac{\sum (\text{mirušo skaits} \times \text{vidējais vecums grupā}) - 65 \times \text{kopējais skaits}}{\text{kopējais skaits}}
+   \text{Videjais atlikusais dzives ilgums} = \frac{\sum (\text{miruso skaits} \times \text{videjais vecums grupa}) - 65 \times \text{kopejais skaits}}{\text{kopejais skaits}}
    \]
 
-5. **Rezultāts**  
-   - Vidējais dzīves ilgums pēc 65 gadu vecuma katram dzimumam.
+5. Iegustāmais rezultāts: vidējais dzīves ilgums pēc 65 gadu vecuma katram dzimumam.
 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+
+Sākuma definējam interesējušos intervālus un aprēķinām katrā vēcuma intervāla vidējo vecuma vērtību.
+```{r, intervals, }
+vecuma_kolonnas <- c("Vec65_69","Vec70_74","Vec75_79","Vec80_84","Vec85_89","Vec90_94")
+vidus_vecums <- c(67,72,77,82,87,92)  # vidējie vecumi katrai grupai
+```
+
+Apreķinām vidējo atlikušas dzīves ilgumu katram dzimumam
+```{r, task1, message=FALSE, warning=FALSE }
+rezultats1 <- apvienoti_dati %>%
+  rowwise() %>%
+  mutate(
+    # skaits un vecuma grupas * skaits
+    kop_65_plus = sum(c_across(all_of(vecuma_kolonnas))),
+    suma_vidus = sum(c_across(all_of(vecuma_kolonnas)) * vidus_vecums),
+    vid_pec_65 = (suma_vidus - 65 * kop_65_plus)/kop_65_plus
+  ) %>%
+  select(Sex, vid_pec_65)
+```
+
+*Atbilde:* 
+```{r, result1}
+rezultats1
+```
+
+# Otrais uzdevums
+Aprēķināja mirušo cilvēku vecumu sadalījumu pa vecuma grupām (histogrammu): cik no 100 cilvēkiem miruši attiecīgi vecumā 0-9, 10-19, 20-29, 30-39 utt.
+
+Algoritma apraksts:
+
+1. Apvienot dzimumus, saskaitot vērtības vecuma intervālos.
+2. Aprēķināt kopējo mirušo skaitu visās vecuma grupās.
+3. Katram vecuma intervālam aprēķinām proporciju = (skaits grupā / kopējais skaits) * 100
+
+
+Summejam abu dzimumu skaitus
+```{r, summ_sexes}
+dati_kopa <- apvienoti_dati %>%
+  select(-Sex) %>%       # atmet dzimumu
+  summarise(across(everything(), sum, na.rm = TRUE))
+```
+
+Aprēķinam kopējo mirušo skaitu
+```{r, sum_all}
+total <- sum(dati_kopa)
+```
+
+Pārvēršam datus "long" formā un aprēķinām proporciju
+```{r, proporcija}
+proporcijas <- dati_kopa %>%
+  pivot_longer(cols = everything(),
+               names_to = "Vecuma_grupa",
+               values_to = "Skaits") %>%
+  mutate(Proporcija = Skaits / total * 100)
+```
+
+
+Rezultāts: 
+```{r, proporcija_izvade}
+proporcijas
+```
+
+```{r, proporcija_grafiks, echo = FALSE}
+proporcijas <- proporcijas %>%
+  mutate(Vecuma_grupa = factor(Vecuma_grupa,
+                               levels = c("Vec0_4", "Vec5_9", "Vec10_14",
+                                          "Vec15_19", "Vec20_24", "Vec25_29",
+                                          "Vec30_34", "Vec35_39", "Vec40_44",
+                                          "Vec45_49", "Vec50_54", "Vec55_59",
+                                          "Vec60_64", "Vec65_69", "Vec70_74",
+                                          "Vec75_79", "Vec80_84", "Vec85_89",
+                                          "Vec90_94")))
+
+ggplot(proporcijas, aes(x = Vecuma_grupa, y = Proporcija)) +
+  geom_col(fill = "skyblue") +
+  labs(
+    title = "Mirušo sadalījums pa vecuma grupām (Graunta stilā)",
+    x = "Vecuma grupa",
+    y = "No 100 cilvēkiem mirušie"
+  ) +
+  theme_minimal(base_size = 14)  +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+# Trešais uzdevums 
+
+No iegūtas histogrammas iegūt šobrīd dzīvojošo cilvēku vecumu spektru. 
+
+1. Pārreiķināt uz sākotnējais skaits = 100.
+3. Katram vecuma intervālam: proporciju (mirušo % no 100) atņemt to no “dzīvo” cilvēku skaita.
+4. Pārrēķināt uz procentiem.
+
+
+```{r, dzivie}
+iedziv_spektrs <- proporcijas %>%
+  mutate(Proporcija = Proporcija) %>%
+  arrange(Vecuma_grupa) %>%
+  # 2. Aprēķinām kumulatīvo summu (cik nomirst līdz attiecīgajam vecumam)
+  mutate(Kumul_mirušie = cumsum(Proporcija),
+         Dzīvi = 100 - Kumul_mirušie)
+```
+
+Rezultāts:
+
+```{r, dzivie_res}
+iedziv_spektrs
+```
+
+
+
+```{r, dzivie_grafiks, echo = FALSE}
+ggplot(iedziv_spektrs, aes(x = Vecuma_grupa, y = Dzīvi)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Iedzīvotāju vecuma spektrs",
+       x = "Vecuma grupa",
+       y = "Dzīvo (% no 100)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 ```
 
 
 
 
-# Otrais uzdevums
-
-
-Agoritms:
-
-
-Ievade: tabula ar kolonnām: Sex, Vec0_4, Vec5_9, Vec10_14, ...
-1. Apvienot visus dzimumus, saskaitot pa vecuma intervāliem.
-2. Aprēķināt kopējo mirušo skaitu visās vecuma grupās.
-3. Katram vecuma intervālam:
-     - atrast skaitu šajā grupā
-     - aprēķināt proporciju = (skaits / kopējais) * 100
-4. Izvadīt tabulu vai histogrammu ar proporcijām.
 
 
 
 
 
-# Trešais uzdevums 
-Ievade: histogramma ar kolonnu Vecuma_grupa un Proporcija (mirušo % no 100)
-1. Sakārtot vecuma grupas pēc kārtas (0–4, 5–9, …, 90–94).
-2. Inicializēt sākuma populāciju = 100.
-3. Katram vecuma intervālam:
-     a) Paņemt proporciju (mirušo % no 100)
-     b) Atņemt to no “dzīvo” skaita
-     c) Saglabāt rezultātu kā “cik dzīvo šajā vecumā”
-4. Pārrēķināt uz procentiem (sadalījums uz 100).
-5. Rezultātu var izmantot, lai uztaisītu histogrammu “iedzīvotāju vecuma spektrs”.
+
+
+
+
+
+
+
+
+

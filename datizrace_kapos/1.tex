@@ -1,0 +1,303 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Butkevica\_datizrace\_kapseta},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Butkevica\_datizrace\_kapseta}
+\author{}
+\date{\vspace{-2.5em}2025-09-12}
+
+\begin{document}
+\maketitle
+
+\section{Datu avots}\label{datu-avots}
+
+Man neizdevas atras daubāzi, kur būtu pieejami atsevišķi ieraksti ar
+precīžu vecumu vai dzimšanas un mirstības gadu, savukārt manuāla
+kopēšanas no \url{https://timenote.info/} neveido dabisku izlasi, tādēļ
+es izmantoju datus no Pasaules \href{https://www.who.int/}{Veselības
+organizācijas} (World Health Organization), kas (izvelētais fails) satur
+informāciju par mirušo cilvēku sakitu no 1988 līdz 2002 gadam pa vecuma
+grupam. Vecuma grupas nesakrīt pilnība ar uzdevuma apsaktītajam, tomēr,
+manuprāt tas neietekme izpildes algoritmus. Dati lejupielādei pieejami
+\href{https://www.who.int/data/data-collection-tools/who-mortality-database}{šeit}.
+
+\section{Datu sakartošana}\label{datu-sakartoux161ana}
+
+Datubaze satur informāciju par mirušo skaitu gadā, katrā vecuma grupā,
+sadalot to pa dzimumiem un miršanas iemesliem. Tādēļ no sākuma sakartoju
+datus. Tas nebija daļa no uzdevuma, tādēl detalizēti neskaidrošu.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pirmie\_dati }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\FunctionTok{here}\NormalTok{(}\StringTok{"datizrace\_kapos"}\NormalTok{, }\StringTok{"Morticd10\_part1.csv"}\NormalTok{))}
+
+\NormalTok{dati }\OtherTok{\textless{}{-}}\NormalTok{ pirmie\_dati[pirmie\_dati}\SpecialCharTok{$}\NormalTok{Country }\SpecialCharTok{==} \DecValTok{4186}\NormalTok{,] }\CommentTok{\# atlasu Latviju}
+
+\NormalTok{apvienoti\_dati }\OtherTok{\textless{}{-}}\NormalTok{ dati }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(Sex) }\SpecialCharTok{\%\textgreater{}\%}         \CommentTok{\# grupēju pēc dzimuma}
+  \FunctionTok{summarise}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\FunctionTok{starts\_with}\NormalTok{(}\StringTok{"Death"}\NormalTok{), sum, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There was 1 warning in `summarise()`.
+## i In argument: `across(starts_with("Death"), sum, na.rm = TRUE)`.
+## i In group 1: `Sex = 1`.
+## Caused by warning:
+## ! The `...` argument of `across()` is deprecated as of dplyr 1.1.0.
+## Supply arguments directly to `.fns` through an anonymous function instead.
+## 
+##   # Previously
+##   across(a:b, mean, na.rm = TRUE)
+## 
+##   # Now
+##   across(a:b, \(x) mean(x, na.rm = TRUE))
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{apvienoti\_dati}\SpecialCharTok{$}\NormalTok{Sex }\OtherTok{\textless{}{-}} \FunctionTok{ifelse}\NormalTok{(apvienoti\_dati}\SpecialCharTok{$}\NormalTok{Sex }\SpecialCharTok{==} \DecValTok{1}\NormalTok{, }\StringTok{"Vīrietis"}\NormalTok{, }\StringTok{"Sieviete"}\NormalTok{)}
+
+
+\CommentTok{\# Apvienot vecumu 0{-}4 gadi vienā intervālā, jo tie sniegti pa atsevišķiem gadiem}
+\NormalTok{apvienoti\_dati}\SpecialCharTok{$}\NormalTok{Vec0\_4 }\OtherTok{\textless{}{-}} \FunctionTok{rowSums}\NormalTok{(apvienoti\_dati[, }\FunctionTok{c}\NormalTok{(}
+  \StringTok{"Deaths2"}\NormalTok{, }\StringTok{"Deaths3"}\NormalTok{, }\StringTok{"Deaths4"}\NormalTok{, }\StringTok{"Deaths5"}\NormalTok{, }\StringTok{"Deaths6"}
+\NormalTok{  )], }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
+
+\CommentTok{\# Izdzest liekas kolonnas}
+\NormalTok{apvienoti\_dati }\OtherTok{\textless{}{-}}\NormalTok{ apvienoti\_dati }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{Deaths1, }\SpecialCharTok{{-}}\NormalTok{Deaths2, }\SpecialCharTok{{-}}\NormalTok{Deaths3, }\SpecialCharTok{{-}}\NormalTok{Deaths4,}
+         \SpecialCharTok{{-}}\NormalTok{Deaths5, }\SpecialCharTok{{-}}\NormalTok{Deaths6,}\SpecialCharTok{{-}}\NormalTok{Deaths25, }\SpecialCharTok{{-}}\NormalTok{Deaths26)}
+
+\CommentTok{\# Precizēt nosaukumus}
+\NormalTok{apvienoti\_dati }\OtherTok{\textless{}{-}}\NormalTok{ apvienoti\_dati }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{rename}\NormalTok{(}
+    \AttributeTok{Vec5\_9 =}\NormalTok{ Deaths7, }\AttributeTok{Vec10\_14 =}\NormalTok{ Deaths8, }\AttributeTok{Vec15\_19 =}\NormalTok{ Deaths9,}
+    \AttributeTok{Vec20\_24 =}\NormalTok{ Deaths10, }\AttributeTok{Vec25\_29 =}\NormalTok{ Deaths11, }\AttributeTok{Vec30\_34 =}\NormalTok{ Deaths12,}
+    \AttributeTok{Vec35\_39 =}\NormalTok{ Deaths13, }\AttributeTok{Vec40\_44 =}\NormalTok{ Deaths14, }\AttributeTok{Vec45\_49 =}\NormalTok{ Deaths15,}
+    \AttributeTok{Vec50\_54 =}\NormalTok{ Deaths16, }\AttributeTok{Vec55\_59 =}\NormalTok{ Deaths17, }\AttributeTok{Vec60\_64 =}\NormalTok{ Deaths18,}
+    \AttributeTok{Vec65\_69 =}\NormalTok{ Deaths19, }\AttributeTok{Vec70\_74 =}\NormalTok{ Deaths20, }\AttributeTok{Vec75\_79 =}\NormalTok{ Deaths21,}
+    \AttributeTok{Vec80\_84 =}\NormalTok{ Deaths22, }\AttributeTok{Vec85\_89 =}\NormalTok{ Deaths23, }\AttributeTok{Vec90\_94 =}\NormalTok{ Deaths24}
+\NormalTok{  )}
+
+\CommentTok{\# Pareizā kolonnu secība }
+\NormalTok{apvienoti\_dati }\OtherTok{\textless{}{-}}\NormalTok{ apvienoti\_dati }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{relocate}\NormalTok{(Vec0\_4, }\AttributeTok{.after =} \DecValTok{1}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+Iegūta datu tabula satur mirušo cilvēku skaitu katrā vecumgrupā katram
+dzimumam atsevišķi.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{head}\NormalTok{(apvienoti\_dati)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2 x 20
+##   Sex      Vec0_4 Vec5_9 Vec10_14 Vec15_19 Vec20_24 Vec25_29 Vec30_34 Vec35_39
+##   <chr>     <dbl>  <int>    <int>    <int>    <int>    <int>    <int>    <int>
+## 1 Vīrietis   2422    554      504     1634     3074     3742     4850     7136
+## 2 Sieviete   1938    282      292      648      704      872     1320     2184
+## # i 11 more variables: Vec40_44 <int>, Vec45_49 <int>, Vec50_54 <int>,
+## #   Vec55_59 <int>, Vec60_64 <int>, Vec65_69 <int>, Vec70_74 <int>,
+## #   Vec75_79 <int>, Vec80_84 <int>, Vec85_89 <int>, Vec90_94 <int>
+\end{verbatim}
+
+\section{Pirmais uzdevums}\label{pirmais-uzdevums}
+
+Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks, kurš jau ir sasniedzis
+noteiktu vecumu (piemēram, 65 gadus)?
+
+Algoritma apraksts:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  Atlasīt tikai tās kolonnas, kur vecuma intervāls sākas no 65 gadiem
+  (\texttt{Vec65\_69}, \texttt{Vec70\_74} utt.).
+\item
+  Aprēķināt katras vecuma grupas ``vidējo vecumu'', jo precīzu vecumu
+  mēs nezinam, tādēļ šāda vējda mēgīnām līdzsvarot. Piemēram,
+  \texttt{Vec65\_69} → vidējais vecums = 67 gadi.
+\item
+  Aprēķināt kopējo cilvēku skaitu ≥65 gadi. Sasumēt visus mirušos šajās
+  vecuma grupās (pa dzimumiem).
+\item
+  Aprēķināt vidējo atlikušās dzīves ilgumu pēc formulas:\\
+  \[
+  \text{Videjais atlikusais dzives ilgums} = \frac{\sum (\text{miruso skaits} \times \text{videjais vecums grupa}) - 65 \times \text{kopejais skaits}}{\text{kopejais skaits}}
+  \]
+\item
+  Iegustāmais rezultāts: vidējais dzīves ilgums pēc 65 gadu vecuma
+  katram dzimumam.
+\end{enumerate}
+
+Sākuma definējam interesējušos intervālus un aprēķinām katrā vēcuma
+intervāla vidējo vecuma vērtību.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{vecuma\_kolonnas }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"Vec65\_69"}\NormalTok{,}\StringTok{"Vec70\_74"}\NormalTok{,}\StringTok{"Vec75\_79"}\NormalTok{,}\StringTok{"Vec80\_84"}\NormalTok{,}\StringTok{"Vec85\_89"}\NormalTok{,}\StringTok{"Vec90\_94"}\NormalTok{)}
+\NormalTok{vidus\_vecums }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\DecValTok{67}\NormalTok{,}\DecValTok{72}\NormalTok{,}\DecValTok{77}\NormalTok{,}\DecValTok{82}\NormalTok{,}\DecValTok{87}\NormalTok{,}\DecValTok{92}\NormalTok{)  }\CommentTok{\# vidējie vecumi katrai grupai}
+\end{Highlighting}
+\end{Shaded}
+
+Apreķinām vidējo atlikušas dzīves ilgumu katram dzimumam
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rezultats1 }\OtherTok{\textless{}{-}}\NormalTok{ apvienoti\_dati }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{rowwise}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}
+    \CommentTok{\# skaits un vecuma grupas * skaits}
+    \AttributeTok{kop\_65\_plus =} \FunctionTok{sum}\NormalTok{(}\FunctionTok{c\_across}\NormalTok{(}\FunctionTok{all\_of}\NormalTok{(vecuma\_kolonnas))),}
+    \AttributeTok{suma\_vidus =} \FunctionTok{sum}\NormalTok{(}\FunctionTok{c\_across}\NormalTok{(}\FunctionTok{all\_of}\NormalTok{(vecuma\_kolonnas)) }\SpecialCharTok{*}\NormalTok{ vidus\_vecums),}
+    \AttributeTok{vid\_pec\_65 =}\NormalTok{ (suma\_vidus }\SpecialCharTok{{-}} \DecValTok{65} \SpecialCharTok{*}\NormalTok{ kop\_65\_plus)}\SpecialCharTok{/}\NormalTok{kop\_65\_plus}
+\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(Sex, vid\_pec\_65)}
+\end{Highlighting}
+\end{Shaded}
+
+\emph{Atbilde:}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rezultats1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 2 x 2
+## # Rowwise: 
+##   Sex      vid_pec_65
+##   <chr>         <dbl>
+## 1 Vīrietis       10.4
+## 2 Sieviete       14.4
+\end{verbatim}
+
+\section{Otrais uzdevums}\label{otrais-uzdevums}
+
+Agoritms:
+
+Ievade: tabula ar kolonnām: Sex, Vec0\_4, Vec5\_9, Vec10\_14, \ldots{}
+1. Apvienot visus dzimumus, saskaitot pa vecuma intervāliem. 2.
+Aprēķināt kopējo mirušo skaitu visās vecuma grupās. 3. Katram vecuma
+intervālam: - atrast skaitu šajā grupā - aprēķināt proporciju = (skaits
+/ kopējais) * 100 4. Izvadīt tabulu vai histogrammu ar proporcijām.
+
+\section{Trešais uzdevums}\label{treux161ais-uzdevums}
+
+Ievade: histogramma ar kolonnu Vecuma\_grupa un Proporcija (mirušo \% no
+100) 1. Sakārtot vecuma grupas pēc kārtas (0--4, 5--9, \ldots, 90--94).
+2. Inicializēt sākuma populāciju = 100. 3. Katram vecuma intervālam: a)
+Paņemt proporciju (mirušo \% no 100) b) Atņemt to no ``dzīvo'' skaita c)
+Saglabāt rezultātu kā ``cik dzīvo šajā vecumā'' 4. Pārrēķināt uz
+procentiem (sadalījums uz 100). 5. Rezultātu var izmantot, lai uztaisītu
+histogrammu ``iedzīvotāju vecuma spektrs''.
+
+\end{document}

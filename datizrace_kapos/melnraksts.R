@@ -3,12 +3,10 @@ if (!require("readxl")) install.packages("readxl"); library(readxl)
 if (!require("dplyr")) install.packages("dplyr"); library(dplyr)
 if (!require("tidyr")) install.packages("tidyr"); library(tidyr)
 if (!require("ggplot2")) install.packages("ggplot2"); library(ggplot2)
-
-
-
+if (!require("here")) install.packages("here"); library(here)
 
 # Data ----
-pirmie_dati <- read.csv("datizrace_kapos/Morticd10_part1")
+pirmie_dati <- read.csv(here("datizrace_kapos", "Morticd10_part1.csv"))
 
 # Datu atlase
 dati <- pirmie_dati[pirmie_dati$Country == 4186,]
