@@ -1,7 +1,7 @@
 ---
-title: "Butkevica_datizrace_kapseta"
-output: html_document
-date: "2025-09-12"
+author: "Jekaterīna Butkeviča"
+date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
+output: github_document
 ---
 
 # Datu avots 
