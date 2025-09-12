@@ -1,0 +1,26 @@
+---
+title: "Butkevica_datizrace_kapseta"
+output: html_document
+date: "2025-09-12"
+---
+
+# Datu avots 
+
+
+# Datu sakartošana
+
+
+
+# Pirmais uzdevums
+Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks,
+kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)? 
+
+Pseido-kods:
+1. 
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
