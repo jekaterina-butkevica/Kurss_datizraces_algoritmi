@@ -60,11 +60,11 @@ head(apvienoti_dati)
 vecuma_kolonnas <- c("Vec65_69","Vec70_74","Vec75_79","Vec80_84","Vec85_89","Vec90_94")
 vidus_vecums <- c(67,72,77,82,87,92)  # vidējie vecumi katrai grupai
 
+
 # 2. Aprēķina vidējo atlikušās dzīves ilgumu katram dzimumam
 rezultats1 <- apvienoti_dati %>%
   rowwise() %>%
   mutate(
-    # skaits un vecuma grupas * skaits
     kop_65_plus = sum(c_across(all_of(vecuma_kolonnas))),
     suma_vidus = sum(c_across(all_of(vecuma_kolonnas)) * vidus_vecums),
     vid_pec_65 = (suma_vidus - 65 * kop_65_plus)/kop_65_plus
@@ -94,8 +94,9 @@ proporcijas <- dati_kopa %>%
                names_to = "Vecuma_grupa",
                values_to = "Skaits") %>%
   mutate(Proporcija = Skaits / total * 100)
-
 proporcijas
+
+
 
 proporcijas <- proporcijas %>%
   mutate(Vecuma_grupa = factor(Vecuma_grupa,
@@ -116,7 +117,12 @@ ggplot(proporcijas, aes(x = Vecuma_grupa, y = Proporcija)) +
   ) +
   theme_minimal(base_size = 14)
 
-# tre sais uzdevums -----
+
+
+
+
+
+# trešais uzdevums -----
 iedziv_spektrs <- proporcijas %>%
   mutate(Proporcija = Proporcija) %>%
   arrange(Vecuma_grupa) %>%
@@ -126,8 +132,8 @@ iedziv_spektrs <- proporcijas %>%
 
 iedziv_spektrs
 
-library(dplyr)
-library(ggplot2)
+
+
 
 # Pieņemsim, ka tev jau ir aprēķināta tabula 'iedziv_spektrs'
 # ar kolonnu Vecuma_grupa un Dzīvi (procenti no 100)
@@ -144,8 +150,6 @@ ggplot(iedziv_spektrs, aes(x = Vecuma_grupa, y = Dzīvi)) +
        y = "Dzīvo (% no 100)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
 
 
 

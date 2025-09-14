@@ -5,11 +5,11 @@ date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
 output: github_document
 ---
 
-Ar šāda veida uzdevumiem sastapos pirmo reizi un neesmu pārliecināta, kā to parasti noformē Datorikas fakultātē. Tādēļ uzdevumu noformēju līdzīgi tam, kā pie mums – Bioloģijas fakultātē – parasti tiek sagatavoti līdzīgi uzdevumi. Vai šis noformējums atbilst sagaidītajam? Būšu ļoti pateicīga par komentāriem un ieteikumiem attiecībā uz uzdevuma iesegšanas formātu.
+Ar šāda veida uzdevumiem sastapos pirmo reizi un neesmu pārliecināta, kā to parasti noformē Datorikas fakultātē. Tādēļ uzdevumu noformēju līdzīgi tam, kā pieņemts noformēt ar kodu saistītus uzdevumus pie mums – Bioloģijas fakultātē. Vai šis noformējums atbilst sagaidītajam? Būšu ļoti pateicīga par komentāriem un ieteikumiem.
 
 
 ## Datu avots
-Man neizdevās atrast datubāzi, kur būtu pieejami atsevišķi ieraksti ar precīzu vecumu vai dzimšanas un mirstības gadu. Savukārt manuāla datu kopēšana no https://timenote.info/ neveido dabisku izlasi. Tādēļ es izmantoju datus no Pasaules [Veselības organizācijas](https://www.who.int/) (World Health Organization), kur (izvēlētais fails) satur informāciju par mirušo cilvēku skaitu no 1988. līdz 2002. gadam pa vecuma grupām. Vecuma grupas nesakrīt pilnībā ar uzdevumā apskatītajām, tomēr, manuprāt, tas neietekmē algoritmu izpildi.
+Man neizdevās atrast datubāzi, kur būtu pieejami atsevišķi ieraksti ar precīzu vecumu vai dzimšanas un miršanas gadu. Savukārt manuāla datu kopēšana no https://timenote.info/ neveido dabisku izlasi. Tādēļ es izmantoju datus no Pasaules [Veselības organizācijas](https://www.who.int/) (World Health Organization). Izvēlētais fails satur informāciju par mirušo cilvēku skaitu no 1988. līdz 2002. gadam pa vecuma grupām. Vecuma grupas nesakrīt pilnībā ar uzdevumā apskatītajām, tomēr, manuprāt, tas neietekmē algoritmu.
 Dati lejupielādei pieejami [šeit](https://www.who.int/data/data-collection-tools/who-mortality-database).
 
 
@@ -73,7 +73,7 @@ head(apvienoti_dati)
 
 
 ## Pirmais uzdevums
-**Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks, kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)**
+**Aprēķināt, cik ilgi (vidēji) dzīvos cilvēks, kurš jau ir sasniedzis noteiktu vecumu (piemēram, 65 gadus)**.
 
 
 Algoritma apraksts:
@@ -85,7 +85,6 @@ Algoritma apraksts:
    \[
    \text{Videjais atlikusais dzives ilgums} = \frac{\sum (\text{miruso skaits} \times \text{videjais vecums grupa}) - 65 \times \text{kopejais skaits}}{\text{kopejais skaits}}
    \]
-5. Iegustāmais rezultāts: vidējais dzīves ilgums pēc 65 gadu vecuma katram dzimumam.
 
 
 
@@ -115,7 +114,7 @@ rezultats1
 ```
 
 ## Otrais uzdevums
-**Aprēķināja mirušo cilvēku vecumu sadalījumu pa vecuma grupām (histogrammu): cik no 100 cilvēkiem miruši attiecīgi vecumā 0-9, 10-19, 20-29, 30-39 utt.**
+**Aprēķināt mirušo cilvēku vecumu sadalījumu pa vecuma grupām (histogrammu): cik no 100 cilvēkiem miruši attiecīgi vecumā 0-9, 10-19, 20-29, 30-39 utt.**
 
 Algoritma apraksts:
 
@@ -178,11 +177,10 @@ ggplot(proporcijas, aes(x = Vecuma_grupa, y = Proporcija)) +
 
 
 ## Trešais uzdevums 
-**No iegūtas histogrammas iegūt šobrīd dzīvojošo cilvēku vecumu spektru.**
+**No iegūtas histogrammas iegūt noteiktā vēcumā dzīvojošo cilvēku vecumu spektru.**
 
-1. Pārreiķināt uz sākotnējais skaits = 100.
+1. Sākotnējais skaits = 100.
 2. Katram vecuma intervālam: proporciju (mirušo % no 100) atņemt to no “dzīvo” cilvēku skaita.
-3. Pārrēķināt uz procentiem.
 
 
 ```{r, dzivie}
@@ -203,11 +201,14 @@ iedziv_spektrs
 Rezultāta vizualizācija:
 
 ```{r, dzivie_grafiks, echo = FALSE}
+# Sakārto Vecuma_grupa kā faktoru, lai secība būtu pareiza
+iedziv_spektrs$Vecuma_grupa <- factor(iedziv_spektrs$Vecuma_grupa, 
+                                      levels = iedziv_spektrs$Vecuma_grupa)
 ggplot(iedziv_spektrs, aes(x = Vecuma_grupa, y = Dzīvi)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_bar(stat = "identity", fill = "skyblue") +
   labs(title = "Iedzīvotāju vecuma spektrs",
        x = "Vecuma grupa",
-       y = "Dzīvo (% no 100)") +
+       y = "Dzīvo cilvēku skaits no 100 dzimušajiem") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
