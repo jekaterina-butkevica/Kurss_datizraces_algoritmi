@@ -1,0 +1,13 @@
+---
+title: "2. Asociācijas"
+author: "Jekaterīna Butkeviča,"
+date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+
+```
+
+
+
