@@ -5,6 +5,25 @@ date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
 output: github_document
 ---
 
+# Uzdevums
+
+Par veiktajiem eksperimentiem uzrakstiet īsas atskaites ar "lietišķajiem pierādījumiem", kas apliecinātu, ka eksperimenti patiešām ir veikti. 
+
+1) Atrodiet internetā kādu interesantu datu kopu, kurā var meklēt asociācijas.  
+  a) Aprakstiet, kā Jūs sapratāt šos datus. 
+  b) Padarbiniet Apriori algoritmu ar parametru vērtībām, kas liekas piemērotas. 
+  c) Kādas patiesi interesantas asociācijas atradāt? Ar kādam parametru vērtībām tas izdevās? 
+  d) Cik lielas un cik daudz biežo kopu (frequent itemsets) algoritms atrada un izmantoja? 
+
+
+2) (neobligāts) Atkārtojiet savus eksperimentus ar izvēlēto datu kopu, izmantojot algoritmu FPGrowth vai jebkuru citu asociāciju meklēšanas algoritmu. Vai rezultāts iznāca interesantāks nekā Apriori?
+
+
+# Pirmais uzdevums
+
+## Datu kopa
+
+https://archive.ics.uci.edu/dataset/111/zoo
 ```{r setup, include=FALSE}
 
 ```
