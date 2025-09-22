@@ -9,19 +9,17 @@ library(ggplot2)
 zoo <- read.csv("./02_asociacijas/Data/zoo.data", 
                 header = FALSE)
 
+zoo <- zoo[ , -c(1, 14, 18)]
 
-
-head(zoo)
-
-colnames(zoo) <- c("animal","hair","feathers","eggs","milk",
+nosaukumi <- c("hair","feathers","eggs","milk",
                    "airborne","aquatic","predator","toothed",
                    "backbone","breathes","venomous","fins",
-                   "legs","tail","domestic","catsize","type")
+                   "tail","domestic","catsize")
 
-cols_to_factor <- c("hair","feathers","eggs","milk","airborne",
-                    "aquatic","predator","toothed","backbone",
-                    "breathes","venomous", "legs", "fins","tail","domestic","catsize","type")
-zoo[ , cols_to_factor] <- lapply(zoo[ , cols_to_factor], as.factor)
+colnames(zoo) <-  nosaukumi
+
+zoo[ , nosaukumi] <- lapply(zoo[ , nosaukumi], as.factor)
 
 write.arff(zoo, file = "./02_asociacijas/Data/zoo.arff")
 
+getwd()
