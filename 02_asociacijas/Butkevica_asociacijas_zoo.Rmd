@@ -1,0 +1,142 @@
+---
+title: "Asociācijas"
+author: "Jekaterīna Butkeviča,"
+date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
+output: github_document
+---
+
+## Uzdevums
+
+Par veiktajiem eksperimentiem uzrakstiet īsas atskaites ar "lietišķajiem pierādījumiem", kas apliecinātu, ka eksperimenti patiešām ir veikti. 
+
+1) Atrodiet internetā kādu interesantu datu kopu, kurā var meklēt asociācijas.  
+  a) Aprakstiet, kā Jūs sapratāt šos datus. 
+  b) Padarbiniet Apriori algoritmu ar parametru vērtībām, kas liekas piemērotas. 
+  c) Kādas patiesi interesantas asociācijas atradāt? Ar kādam parametru vērtībām tas izdevās? 
+  d) Cik lielas un cik daudz biežo kopu (frequent itemsets) algoritms atrada un izmantoja? 
+
+
+2) (neobligāts) Atkārtojiet savus eksperimentus ar izvēlēto datu kopu, izmantojot algoritmu FPGrowth vai jebkuru citu asociāciju meklēšanas algoritmu. Vai rezultāts iznāca interesantāks nekā Apriori?
+
+
+## Pirmais uzdevums
+
+### A. Datu kopa
+
+Analīzēto datu kopu atrodu [šeit](https://archive.ics.uci.edu/dataset/111/zoo). To veido 15 bināro mainīgo, kas apraksta vai dzīvniekiem piemīts kāds no raksturojošiem elementiem (hair, feathers, eggs, tail, domestic etc.), ar apzīmējumu 0 - nepiemīt, 1 - piemīt. Sakarā ar to, ka šī datukopa oriģināli tika veidota mašīnmacīsanas uzdevumiem, datukopā pastāv arī mainīgais `animal`, kas paskaidro kāda dzīvnieka apraksts tiek dots šajā rindā, kolonna, kas apraksta kāju skaitu dzimviekam (set of values: `{0,2,4,5,6,8}`) un tips, kurā jāklasificē dzivnieks (integer values in range `[1,7]`), tomēr šis kolonnas netika izmantoti šajā uzdevuma pildīšanā, jo pārkapj associāciju algoritmu prasības.
+
+
+#### Datu sagatavošana 
+
+Dati oriģināli tika padoti .data formāta un it kā WEKA'i ir pielāgojumi arī šo formātu lasīšanai, tomēr man nesanāca tos ielasīt uzreiz, tādēļ R prveršu par WEKA's .arff formātu. Kā arī samainīju kolonnas nosaukumus no kodēta uz cilvēkam saprotamu valodu. Noņemu kolonnas `animal`, `type` un `legs`, jo tie nav bināri. Parējos pārveršu ar faktoriem.
+
+```{r pakotnes, include=FALSE}
+library(foreign)
+
+```
+
+```{r datu_sagatavosana, warnings = FALSE, message=FALSE}
+zoo <- read.csv("Data/zoo.data", 
+                header = FALSE)
+# noņemt kolonnas
+zoo <- zoo[ , -c(1, 14, 18)]
+
+# vektors ar nosaukumiem
+nosaukumi <- c("hair","feathers","eggs","milk",
+                   "airborne","aquatic","predator","toothed",
+                   "backbone","breathes","venomous","fins",
+                   "tail","domestic","catsize")
+# mainu nosaukumus
+colnames(zoo) <-  nosaukumi
+
+#parveršu apr faktoriem
+zoo[ , nosaukumi] <- lapply(zoo[ , nosaukumi], as.factor)
+
+# saglabaju
+write.arff(zoo, file = "Data/zoo.arff")
+```
+
+Talāko darbu veikšu WEK'ā
+
+## Apriori algoritms
+### B. un C.apakšuzdevumi 
+
+Es palaidu Apriori algoritmu ar sēkojošiem iesrtātījumiem:
+
+* `lowerBoundMinSupport = 0.2`,
+* `metricType = Confidence`, (no sakumā loģiskāk likas `lift`, bet izmeģinot to, sanāca, ka ir daudz variantu ar vienādu `lift` vērtību, un visjedzigākie varianti beigās tika piedavāti izvēloties tieši konfidenci.)
+* `minMetric = 0.9`,
+* `numRules = 15`.
+  
+Tika iegūta šāda atbilde
+
+```
+Apriori
+=======
+
+Minimum support: 0.7 (71 instances)
+Minimum metric <confidence>: 0.9
+Number of cycles performed: 6
+
+Generated sets of large itemsets:
+
+Size of set of large itemsets L(1): 8
+
+Size of set of large itemsets L(2): 13
+
+Size of set of large itemsets L(3): 2
+
+Best rules found:
+
+ 1. venomous=0 tail=1 71 ==> backbone=1 71    <conf:(1)> lift:(1.22) lev:(0.13) [12] conv:(12.65)
+ 2. tail=1 75 ==> backbone=1 74    <conf:(0.99)> lift:(1.2) lev:(0.12) [12] conv:(6.68)
+ 3. backbone=1 tail=1 74 ==> venomous=0 71    <conf:(0.96)> lift:(1.04) lev:(0.03) [2] conv:(1.47)
+ 4. backbone=1 83 ==> venomous=0 79    <conf:(0.95)> lift:(1.03) lev:(0.03) [2] conv:(1.31)
+ 5. breathes=1 80 ==> fins=0 76    <conf:(0.95)> lift:(1.14) lev:(0.09) [9] conv:(2.69)
+ 6. airborne=0 77 ==> feathers=0 73    <conf:(0.95)> lift:(1.18) lev:(0.11) [11] conv:(3.05)
+ 7. tail=1 75 ==> venomous=0 71    <conf:(0.95)> lift:(1.03) lev:(0.02) [1] conv:(1.19)
+ 8. tail=1 75 ==> backbone=1 venomous=0 71    <conf:(0.95)> lift:(1.21) lev:(0.12) [12] conv:(3.27)
+ 9. breathes=1 venomous=0 75 ==> fins=0 71    <conf:(0.95)> lift:(1.14) lev:(0.09) [8] conv:(2.52)
+10. breathes=1 80 ==> venomous=0 75    <conf:(0.94)> lift:(1.02) lev:(0.01) [1] conv:(1.06)
+11. breathes=1 fins=0 76 ==> venomous=0 71    <conf:(0.93)> lift:(1.01) lev:(0.01) [1] conv:(1)
+12. airborne=0 77 ==> venomous=0 71    <conf:(0.92)> lift:(1) lev:(0) [0] conv:(0.87)
+13. venomous=0 fins=0 77 ==> breathes=1 71    <conf:(0.92)> lift:(1.16) lev:(0.1) [10] conv:(2.29)
+14. domestic=0 88 ==> venomous=0 81    <conf:(0.92)> lift:(1) lev:(-0) [0] conv:(0.87)
+15. fins=0 84 ==> venomous=0 77    <conf:(0.92)> lift:(1) lev:(-0) [0] conv:(0.83)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

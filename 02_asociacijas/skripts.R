@@ -1,25 +1,15 @@
-# Ja nepieciešams, uzinstalē
-library(here)
+library(arules)
 library(foreign)
-library(ggplot2)
 
-# Nolasāggplot2# Nolasām .data (vai .csv) failu
-# header=TRUE, ja failā jau ir kolonnu nosaukumi
-# Teksta faila nolasīšana
-zoo <- read.csv("./02_asociacijas/Data/zoo.data", 
-                header = FALSE)
+data("Groceries")
 
-zoo <- zoo[ , -c(1, 14, 18)]
+m <- as(Groceries, "matrix")  # 9835 rindas × 169 kolonnas
+head(m[,1:10])                # skatīt pirmās kolonnas
 
-nosaukumi <- c("hair","feathers","eggs","milk",
-                   "airborne","aquatic","predator","toothed",
-                   "backbone","breathes","venomous","fins",
-                   "tail","domestic","catsize")
+m_num <- ifelse(m, 1, 0)
 
-colnames(zoo) <-  nosaukumi
+# Pārveido katru kolonnu par faktoru
+m_fact <- as.data.frame(lapply(as.data.frame(m_num), factor))
 
-zoo[ , nosaukumi] <- lapply(zoo[ , nosaukumi], as.factor)
 
-write.arff(zoo, file = "./02_asociacijas/Data/zoo.arff")
-
-getwd()
+write.arff(m_fact, file = "./02_asociacijas/Data/Groceries.arff")
