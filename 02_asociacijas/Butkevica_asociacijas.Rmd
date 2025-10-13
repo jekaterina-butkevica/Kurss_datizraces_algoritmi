@@ -93,16 +93,26 @@ Number of cycles performed: 1
 
 Best rules found:
 
- 1. rice=0 4878 ==> decalcifier=0 4875    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 2. rubbing.alcohol=0 rice=0 4873 ==> decalcifier=0 4870    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 3. honey=0 rice=0 4869 ==> decalcifier=0 4866    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 4. cooking.chocolate=0 rice=0 4865 ==> decalcifier=0 4862    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 5. rice=0 cookware=0 4864 ==> decalcifier=0 4861    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 6. honey=0 rubbing.alcohol=0 rice=0 4864 ==> decalcifier=0 4861    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 7. bathroom.cleaner=0 rice=0 4860 ==> decalcifier=0 4857    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 8. cooking.chocolate=0 rubbing.alcohol=0 rice=0 4860 ==> decalcifier=0 4857    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
- 9. nuts.prunes=0 rice=0 4859 ==> decalcifier=0 4856    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
-10. rubbing.alcohol=0 rice=0 cookware=0 4859 ==> decalcifier=0 4856    <conf:(1)> lift:(1) lev:(0) [0] conv:(0.99)
+ 1. rice=0 4878 ==> decalcifier=0 4875    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 2. rubbing.alcohol=0 rice=0 4873 ==> decalcifier=0 4870    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 3. honey=0 rice=0 4869 ==> decalcifier=0 4866    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 4. cooking.chocolate=0 rice=0 4865 ==> decalcifier=0 4862    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 5. rice=0 cookware=0 4864 ==> decalcifier=0 4861    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 6. honey=0 rubbing.alcohol=0 rice=0 4864 ==> decalcifier=0 4861    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 7. bathroom.cleaner=0 rice=0 4860 ==> decalcifier=0 4857    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 8. cooking.chocolate=0 rubbing.alcohol=0 rice=0 4860 ==> decalcifier=0 4857    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+ 9. nuts.prunes=0 rice=0 4859 ==> decalcifier=0 4856    <conf:(1)> lift:(1) lev:(0) 
+ [0] conv:(0.99)
+10. rubbing.alcohol=0 rice=0 cookware=0 4859 ==> decalcifier=0 4856    <conf:(1)> lift:(1) lev:(0) 
+[0] conv:(0.99)
 ```
 
 Iegūtais rezultāts atšķiras no sagaidītā. Neskatoties uz minimālo atbalsta slieksni, kas tika iestatīts uz 0,7, programma patvaļīgi to palielināja līdz 0,95. Kopā ar faktu, ka visas piedāvātās asociācijas balstās uz vērtību “0”, t.i., produkta “nenopirkšanu”, tas norāda, ka datos ir ļoti daudz produktu, kas netiek iegādāti 95% gadījumu. Piedāvātajās kombinācijās iekļautie produkti šķietami ir izvēlēti nejauši (kas, protams, nav patiesība – tie ir atlasīti, balstoties uz neparādīšanās kombināciju frekvencēm datu kopā), taču šāda informācija nav analītiski noderīga un, manuprāt, lielā mērā datu rašanās brīdī ir pakļautā nejaušības ietekmēi. Tādēļ neuzskatu par lietderīgu interpretēt iegūtās asociācijas.
