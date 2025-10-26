@@ -1,0 +1,119 @@
+---
+title: "PCA vēlreiz"
+author: "Jekaterīna Butkeviča"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+## Uzdevumi
+
+1.  Atrodiet internetā kādu interesantu datu kopu apstrādei ar PCA.
+2.  Atkārtojiet ar šo datu kopu lekcijas slaidos parādīto eksperimentu ar nelineāru atkarību atklāšanu, izmantojot PCA "vieglā gala" īpašvērtības. Izvēlieties, kāda tipa nelineāras atkarības Jūs gribētu atklāt (piemēram, kvadrātiskas).
+
+## Datu kopa
+
+Es izvēlējos plaši pazīstamu vīna datu kopu (avots:<https://archive.ics.uci.edu/dataset/109/wine>). Šī datu kopa satur informāciju par dažādiem vīna ķīmiskajiem aspektiem, iegūtu, analizējot 178 vīna paraugus. Visi paraugi nāk no viena Itālijas reģiona, bet pieder kādai no trim dažādām šķirnēm.
+
+Oriģinālie dati satur šādus mainīgos: Type, Alcohol, Malic_Acid, Ash, Alcalinity, Magnesium, Total_Phenols, Flavanoids, Nonflavanoid_Phenols, Proanthocyanins, Color_Intensity, Hue, OD280_OD315, Proline.
+
+Dati iegūti, izmantojot šīs rindas:
+
+```{r datuiegyve, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(foreign)
+
+dati <- cars
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data"
+wine <- read.csv(url, header = FALSE)
+colnames(wine) <- c("Type", "Alcohol", "Malic_Acid", "Ash", "Alcalinity", "Magnesium",
+                    "Total_Phenols", "Flavanoids", "Nonflavanoid_Phenols",
+                    "Proanthocyanins", "Color_Intensity", "Hue",
+                    "OD280_OD315", "Proline")
+wine$Type <- as.factor(wine$Type)
+```
+
+Sākumā es apskatīju izkliedes diagrammas visām mainīgo kombinācijām, taču tās nepievienoju, jo sanāca pārāk daudz. Pēc tam es izvēlējos tos mainīgos, starp kuriem, manuprāt, var novērot kvadrātisku sakarību.
+
+Šiem mainīgajiem pievienoju kolonnas ar to vērtībām kvadrātā:
+
+```{r kvadrati}
+wine$kv_Flavanoids <- wine$Flavanoids^2
+wine$kv_Alcohol <- wine$Alcohol^2
+wine$kv_Color_Intensity <- wine$Color_Intensity^2
+```
+
+Tagad datu kopā ir 17 atribūti (14 oriģinālie — 13 + klase — un 3 transformētie kvadrātveida mainīgie).
+
+Datus saglabāju WEKA pieņemamā formātā:
+
+```{r wekas_format}
+write.arff(wine, file = "./vins.arff")
+```
+
+## Nelineāras atkarības
+
+Izmantoju šādus iestatījumus:
+
+-   `centerData = True` (jo PCA ir jūtīgs pret mēroga atšķirībām, kaut arī ar False rezultāti man patika labāk);
+-   `transformBackToOriginal = False`;
+-   `varianceCovered = False`.
+
+Kā klase tika izmantots mainīgais `Type`.
+
+
+Pirmās komponentes galvenie mainīgie ir `-1kv_Proline-0.001Proline-0kv_Alcohol...`un tās īpašvērtība ir 308979478926.1156. Visu nākamo komponentu īpašvērtības ir ievērojami mazākas, kas atspoguļo to, ka pirmā komponente skaidro lielāko daļu datu dispersijas. Attiecīgi pirmās komponentes izskaidrotā dispersijas un kumulatīvā izskaidrotā dispersijas vērtības ir `1`, bet nākamajām komponentēm tās ir `0` un `1`.
+
+Otras komponentes īpašvērtība ir 3647.00865, un tās galvenie mainīgie ir `0.991Proline+0.086kv_Color_Intensity+0.07 Magnesium...`;
+
+Trešās komponentes īpašvērtība ir 848.72228, galvenie mainīgie tajā ir `0.947kv_Color_Intensity+0.292kv_Alcohol-0.105Proline...` utt.
+
+Sākot no septītās komponentes, īpašvērtības ir mazākas par `1`.
+
+Pēdējās, t.i., 16. galvenās komponentes īpašvērtība ir 0.00055, un galvenie mainīgie tajā ir `-0.998Alcohol+0.038kv_Alcohol+0.026Flavanoids...`.
+
+Man šie rezultāti nepatīk, jo pirmā komponente izskaidro pilnīgi visu, savukārt pēdējā komponente, kas varētu parādīt lineāro sakarību, attiecas uz mainīgajiem `Alcohol` un `kv_Alcohol`, kur otrais ir aprēķināts no pirmā.
+
+### Ar skalēšanu
+
+Pievienoju šādas R koda rindas:
+
+```{r skalesana, warning=FALSE, message=FALSE}
+wine2 <- data.frame(Type = wine$Type[1:nrow(wine)])
+
+wine2 <- data.frame(Type = wine$Type, scale(wine[ , -1]))
+
+write.arff(wine2, file = "./vins2.arff")
+```
+
+Tagad jau `centerData = False`.
+
+
+Tagad vērtības izskatās saprotamāk, nav tik lielu lecienu. Aprakstīšu visu to pašu, kā iepriekšējā piemērā (es arī palielināju parādīto mainīgo skaitu):
+
+Pirmās galvenās komponentes īpašvērtība ir 5.66829, izskaidrotās dispersijas daļa ir 0.35427 (35,43%). Galvenie mainīgie: `0.394Flavanoids-0.379kv_Flavanoids-0.366Total_Phenols-0.337OD280_OD315-0.282Proanthocyanins-0.274Proline...`;
+
+Otrās galvenās komponentes īpašvērtība ir 3.7712, izskaidrotās dispersijas daļa 0.2357 (23,57%), kumulatīvi: 59%. Galvenie mainīgie: `-0.466Color_Intensity-0.434kv_Color_Intensity-0.409Alcohol-0.407kv_Alcohol-0.261Proline+0.246Hue...`;
+
+Trešās galvenās komponentes īpašvērtība ir 1.53236, izskaidrotās dispersijas daļa 0.09577 (09,58%), kumulatīvi: 68,57%. Galvenie mainīgie: `0.639Ash+0.59 Alcalinity+0.174Nonflavanoid_Phenols+0.17 Magnesium-0.166Alcohol-0.164kv_Alcohol...`.
+
+... 
+
+Četrpadsmitās galvenās komponentes īpašvērtība ir 0.01929, izskaidrotās dispersijas daļa ir 0.00121 jeb 00,12%. Galvenie mainīgie: `0.685Flavanoids-0.483kv_Flavanoids-0.375Color_Intensity+0.366kv_Color_Intensity-0.08OD280_OD315-0.072Proanthocyanins...`
+
+Piecpadsmitās galvenās komponentes īpašvērtība ir 0.01209, izskaidrotās dispersijas daļa ir 0.00076 jeb 00,076%. Galvenie mainīgie: `-0.634Color_Intensity+0.55 kv_Color_Intensity+0.384kv_Flavanoids-0.376Flavanoids+0.051kv_Alcohol+0.037Proline...`.
+
+Pēdējās (sešpadsmitās) galvenās komponentes īpašvērtība ir 0.00042, izskaidrotās dispersijas daļa ir 0.00003 jeb 00,003%. Galvenie mainīgie: `0.707kv_Alcohol-0.706Alcohol+0.022Color_Intensity+0.021Flavanoids-0.02kv_Color_Intensity-0.018kv_Flavanoids...`.
+
+Tātad 14., 15. un 16. komponente koncentrējas uz mainīgo sakarībām ar to kvadrātiem. Tomēr atklāt nelineāru atkarību starp mainīgo $A$ un tā kvadrātu $A^2$ ir pašsaprotami, jo viens ir atvasināts no otra.
+
+Iespējams informatīva varētu būt 14. komponente, jo tai ir pietiekami maza īpašvērtība, bet lieli svari četriem saistītiem mainīgajiem:
+
+$$\text{PC}_{14} \approx \mathbf{0.685\ \text{Flavanoids}} - \mathbf{0.483\ \text{kv}\_\text{Flavanoids}} - \mathbf{0.375\ \text{Color}\_\text{Intensity}} + \mathbf{0.366\ \text{kv}\_\text{Color}\_\text{Intensity}} - \ldots$$
+
+Tā liecina, ka nelineārais efekts ir nepieciešams, lai aprakstītu saistību starp `Flavanoids` un `Color_Intensity`.
+
+
+#### **Kopējie secinājumi:**
+
+-  Skatoties PCA komponenšu saraksta beigas, var atklāt lineāras sakarības, un, pievienojot datiem transformētas kolonnas, šādā veidā var atklāt arī nelineāras sakarības. Manā gadījumā tas izdevās, atklājot trīs mākslīgi radītās kvadrātiskās sakarības mainīgo duetos – piemēram, $A$ un $A^2$.
+- Vīna datos pastāv kvadrātiska sakarība starp flavanoīdiem un krāsas intensitāti. Ieviešot abu mainīgo kvadrātus, šī nelineārā atkarība PCA parādās kā vāja komponente saraksta beigās.
