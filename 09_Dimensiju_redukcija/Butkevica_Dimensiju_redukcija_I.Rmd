@@ -1,0 +1,122 @@
+---
+title: "Dimensiju redukcija I"
+author: "Jekaterīna Butkeviča"
+date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
+output: word_document
+---
+
+
+## Uzdevumi
+
+1. Atrodiet internetā kādu interesantu datu kopu dimensiju redukcijas uzdevumam (ja nekas cits neatrodas, izmantojiet WEKAs faila unbalanced  datus).
+2. Mēģiniet atrisināt šo uzdevumu, izmantojot kādu no jums pieejamām ISOMAP realizācijām. Varat izmantot arī lekcijas slaidos doto R skriptu.
+3. Iekrāsojiet dažādu klašu objektus atšķirīgās krāsās. Pamainiet galvenos parametrus, lai sanāktu pēc iespējas interesantāks rezultāts. Kādu rezultātu ieguvāt? 
+4.Vai izdevās pārspēt PCA rezultātu?
+
+
+## Pirmias uzdevums
+
+Es izmantosu WEKA failu `unbalanced` – tas ir viens no WEKA Artificial datasets kolekcijas datiem, kas veidoti, lai simulētu nevienlīdzīgi sadalītas klases. Dati satur sintētiskus prediktorus, kas ģenerēti, izmantojot Weka Balanced Network ar Gaussian cluster principu.
+
+Izvēlētajā datu kopā pastāv klašu disbalans: klasē “Active” ir tikai 12 novērojumi, savukārt klasē “Inactive” — 844 novērojumi. Šī disbalansa dēļ sagaidāms, ka rezultātu interpretācija var būt grūta, it īpaši, jo pārējie mainīgie nav cilvēkam viegli uztverami.
+
+
+```{r libs}
+library(foreign)
+
+unbalanced <- read.arff("unbalanced.arff")
+```
+
+
+## Otrais un trešais uzdevumi
+
+Es mēģināju izmantot pakotni `"ProjectionBasedClustering"`, bet sastapos ar problēmu, kas tika pieminēta lekcijā – funkcija `Isomap` ignorēja norādīto `k` parametru, tāpēc nolēmu mēģināt citādi.
+
+Sākumā atdalīju klases atribūtu un pārvēršu to par faktoru, lai vēlāk izmantotu punktu krāsošanai. Atlasu tikai skaitliskos atribūtus. Standartizēju datus, jo dažādiem atribūtiem ir atšķirīgi mērogi. Definēju vēlamās `k` parametra vērtības, ar kurām vēlos pārbaudīt metodi. Iterēju algoritmu katrai `k` vērtībai un vizualizēju iegūtos rezultātus.
+
+```{r ISOMAP}
+library(vegan)
+library(ggplot2)
+
+labels <- as.factor(unbalanced$Outcome)
+table(labels) 
+
+unbalanced_numeric <- unbalanced[sapply(unbalanced, is.numeric)] 
+unbalanced_scaled <- scale(unbalanced_numeric)
+
+k_values <- c(5, 10, 20, 30, 40)
+isomap_results <- list()
+
+set.seed(464)
+
+for (k in k_values) {
+  iso <- isomap(dist(unbalanced_scaled), k = k)
+  isomap_results[[as.character(k)]] <- iso
+}
+
+
+for (k in k_values) {
+  proj <- scores(isomap_results[[as.character(k)]])
+  plot(proj,
+       col = labels,
+       pch = 19,
+       main = paste("ISOMAP, k =", k))
+  legend("topright",
+         legend = levels(labels),
+         col = 1:2,
+         pch = 19)
+}
+
+```
+
+Iegūtais izkārtojums atšķiras pie dažādām `k` vērtībām: sākumā tas mainās straujāk, bet sākot ar `k = 20` praktiski stabilizējas.
+
+Pēc melno punktu izvietojuma man vairāk patika varianti ar `k = 5, 10 un 20`, tomēr, ņemot vērā klašu disbalansu, es šaubos, vai tas ir adekvāts parametrs veiksmīguma novērtējumam. Diemžēl es neesmu pietiekami iepazinusies ar grafiem, lai dotu pamatotu argumentāciju, bet, balstoties uz lekcijā runāto, man liekas, ka vairāk uzmanības jāpiegriež tam, ka izkārtojums gandrīz pilnībā stabilizējas pie lielākām `k` vērtībām.
+
+
+
+
+
+## Ceturtais uzdevums
+
+Pielietoju PCA un vizualizēju rezultātus, izmantojot funkciju `autoplot`.
+
+```{r PCA}
+library(ggfortify)
+unbalanced_pca <- prcomp(unbalanced_numeric, scale. = TRUE) 
+
+unbalanced_plot_data <- unbalanced_numeric
+unbalanced_plot_data$Group <- labels  # Active / Inactive
+
+# autoplot
+autoplot(unbalanced_pca,
+         data = unbalanced_plot_data,
+         colour = 'Group',         
+         loadings = TRUE, 
+         loadings.label = TRUE,
+         loadings.colour = "black",         
+         loadings.label.colour = "black",    
+         loadings.label.size = 3,            
+         label = FALSE) +
+  scale_colour_manual(values = c("Active" = "red", "Inactive" = "blue")) +
+  theme_minimal()
+```
+
+Rezultāts ir līdzīgs tam, kas iegūts ar `ISOMAP` algoritmu pie `k = 30` vai `40`, gan kopējā izkārtojumā, gan mazākās klases punktu izvietojumā, tikai apgriezts otrādi. 
+
+**Secinājums:** Es nevaru teikt, ka `ISOMAP` pārspēj `PCA`, tomēr tas, visticamāk, ir saistīts ar pašu datu kopas īpašībām. Iespējams, tas, ka `PCA` rezultāts gandrīz pilnībā atkārto `ISOMAP` rezultātu ar `k = 40`, ir saistīts ar to, ka datu kopas apjoms pats par sevi ir neliels, un 40 kaimiņi veido jau aptuveni 4,67% no kopējā novērojumu skaita. Tas, visticamāk, izraisīja situāciju, ka grafā gandrīz visi punkti tika savienoti, un īsākais ceļš starp punktiem kļuva līdzīgs eiklīda attālumam. Tādēļ `ISOMAP` rezultāts zaudēja nelineāro struktūru, un projekcija kļuva ļoti līdzīga lineārai `PCA` projekcijai.
+
+Var būt arī tā, ka datos vienkārši nepastāv izteikti nodalītas hipervirsmas, tāpēc rezultāts līdzinās lineāram `PCA` rezultātam.
+
+
+
+
+
+
+
+
+
+
+
+
+
