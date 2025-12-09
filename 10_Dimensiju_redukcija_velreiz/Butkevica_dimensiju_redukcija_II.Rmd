@@ -1,0 +1,115 @@
+---
+title: "Dimensiju redukcija vēlreiz"
+author: "Jekaterīna Butkeviča"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+## Uzdevums
+
+Atrodiet internetā kādu interesantu datu kopu dimensiju redukcijas uzdevumam (ja nekas cits neatrodas, izmantojiet WEKAs faila unbalanced  datus). 
+
+1. Mēģiniet atrisināt šo uzdevumu, izmantojot kādu no jums pieejamām t-SNE vai UMAP (vai abām) realizācijām. Varat izmantot arī lekcijas slaidos dotos R skriptus. Iekrāsojiet dažādu klašu objektus atšķirīgās krāsās. Mainiet galveno parametru ("efektīvais kaimiņu skaits") no minimālās vērtības līdz ir iegūts stabils rezultāts. Uzrakstiet atskaiti par saviem piedzīvojumiem, ietverot izmantotos programmu pirmkodus un iegūto rezultātu attēlus.
+
+2. Ko varat secināt par rezultātu atkarību no galvenā parametra? Vai izdevās pārspēt PCA un ISOMAP rezultātus? 
+
+
+## Dati
+
+Tā kā ieprieksejo uzdevumu izvēlējos taisīt ar unbalanced datiem, turpināšu izmantot tiesi tos, lai vieglāk būtu uztvert metožu atsķirības.
+
+Atgadīnājumam – WEKA fails `unbalanced` – ir viens no WEKA Artificial datasets kolekcijas datiem, kas veidoti, lai simulētu nevienlīdzīgi sadalītas klases. Dati satur sintētiskus prediktorus, kas ģenerēti, izmantojot Weka Balanced Network ar Gaussian cluster principu.
+
+```{r libs}
+library(foreign)
+
+unbalanced <- read.arff("unbalanced.arff")
+unbalanced_labels <- unbalanced$Outcome
+unbalanced_numeric <- unbalanced[sapply(unbalanced, is.numeric)]
+```
+
+## t-SNE
+
+t-SNE galvenais parametrs ir perplexity
+
+```{r t_sne}
+library(Rtsne)
+library(ggplot2)
+library(patchwork)
+
+# --- t-SNE ar perplexity = 5 ---
+set.seed(42) # Fiksējam sēklu reproducējamībai
+tsne_5 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 5, verbose = FALSE, max_iter = 500)
+tsne_5_plot <- data.frame(tsne_5$Y, Outcome = unbalanced_labels)
+p_tsne_5 <- ggplot(tsne_5_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("t-SNE (Perplexity = 5)")
+
+# --- t-SNE ar perplexity = 30 (noklusētā vērtība) ---
+set.seed(42)
+tsne_30 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 30, verbose = FALSE, max_iter = 500)
+tsne_30_plot <- data.frame(tsne_30$Y, Outcome = unbalanced_labels)
+p_tsne_30 <- ggplot(tsne_30_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("t-SNE (Perplexity = 30)")
+
+# --- t-SNE ar perplexity = 80 ---
+set.seed(42)
+tsne_80 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 80, verbose = FALSE, max_iter = 500)
+tsne_80_plot <- data.frame(tsne_80$Y, Outcome = unbalanced_labels)
+p_tsne_80 <- ggplot(tsne_80_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("t-SNE (Perplexity = 80)")
+
+# Apvienojam t-SNE rezultātus vienā attēlā
+tsne_results <- p_tsne_5 + p_tsne_30 + p_tsne_80
+tsne_results
+
+```
+
+
+
+## UMAP
+
+UMAP galvenais parametrs ir n_neighbors.
+
+```{r}
+library(umap)
+
+# --- UMAP ar n_neighbors = 5 ---
+set.seed(42)
+umap_5 <- umap(unbalanced_numeric, n_neighbors = 5)
+umap_5_plot <- data.frame(umap_5$layout, Outcome = unbalanced_labels)
+p_umap_5 <- ggplot(umap_5_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("UMAP (n_neighbors = 5)")
+
+# --- UMAP ar n_neighbors = 15 (noklusētā vērtība) ---
+set.seed(42)
+umap_15 <- umap(unbalanced_numeric, n_neighbors = 15)
+umap_15_plot <- data.frame(umap_15$layout, Outcome = unbalanced_labels)
+p_umap_15 <- ggplot(umap_15_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("UMAP (n_neighbors = 15)")
+
+# --- UMAP ar n_neighbors = 45 ---
+set.seed(42)
+umap_45 <- umap(unbalanced_numeric, n_neighbors = 45)
+umap_45_plot <- data.frame(umap_45$layout, Outcome = unbalanced_labels)
+p_umap_45 <- ggplot(umap_45_plot, aes(x = X1, y = X2, color = Outcome)) +
+  geom_point() +
+  ggtitle("UMAP (n_neighbors = 45)")
+
+# Apvienojam UMAP rezultātus vienā attēlā
+umap_results <- p_umap_5 + p_umap_15 + p_umap_45
+umap_results
+
+```
+
+
+## ISOMAP 
+
+
+## PCA 
+
+
