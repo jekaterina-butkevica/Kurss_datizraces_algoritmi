@@ -16,9 +16,11 @@ Atrodiet internetā kādu interesantu datu kopu dimensiju redukcijas uzdevumam (
 
 ## Dati
 
-Tā kā ieprieksejo uzdevumu izvēlējos taisīt ar unbalanced datiem, turpināšu izmantot tiesi tos, lai vieglāk būtu uztvert metožu atsķirības.
+Tā kā iepriekšējo uzdevumu izvēlējos veikt ar `unbalanced` datiem, turpināšu izmantot tieši tos, lai vieglāk uztvertu metožu atšķirības.
 
-Atgadīnājumam – WEKA fails `unbalanced` – ir viens no WEKA Artificial datasets kolekcijas datiem, kas veidoti, lai simulētu nevienlīdzīgi sadalītas klases. Dati satur sintētiskus prediktorus, kas ģenerēti, izmantojot Weka Balanced Network ar Gaussian cluster principu.
+Atgādinājumam — WEKA fails `unbalanced` ir viens no WEKA Artificial Datasets kolekcijas datiem, kas veidoti, lai simulētu nevienmērīgi sadalītas klases. Dati satur sintētiskus atribūtus, kas ģenerēti, izmantojot Weka Balanced Network ar Gaussian cluster principu.
+
+Ielasu datu kopu, klases saglabāju atsevišķi, un atsevišķā mainīgajā pārnesu tikai skaitliskos atribūtus.
 
 ```{r libs}
 library(foreign)
@@ -30,22 +32,22 @@ unbalanced_numeric <- unbalanced[sapply(unbalanced, is.numeric)]
 
 ## t-SNE
 
-t-SNE galvenais parametrs ir perplexity
+Pirmo mēģināšu `t-SNE` metodi. Tās galvenais parametrs ir `perplexity.` `Perplexity` var uztvert kā algoritma pieņemto “efektīvo kaimiņu skaitu” katram datu punktam.
 
 ```{r t_sne}
 library(Rtsne)
 library(ggplot2)
 library(patchwork)
 
-# --- t-SNE ar perplexity = 5 ---
-set.seed(42) # Fiksējam sēklu reproducējamībai
+# t-SNE ar perplexity = 5 
+set.seed(42) 
 tsne_5 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 5, verbose = FALSE, max_iter = 500)
 tsne_5_plot <- data.frame(tsne_5$Y, Outcome = unbalanced_labels)
 p_tsne_5 <- ggplot(tsne_5_plot, aes(x = X1, y = X2, color = Outcome)) +
   geom_point() +
   ggtitle("t-SNE (Perplexity = 5)")
 
-# --- t-SNE ar perplexity = 30 (noklusētā vērtība) ---
+# t-SNE ar perplexity = 30
 set.seed(42)
 tsne_30 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 30, verbose = FALSE, max_iter = 500)
 tsne_30_plot <- data.frame(tsne_30$Y, Outcome = unbalanced_labels)
@@ -53,7 +55,7 @@ p_tsne_30 <- ggplot(tsne_30_plot, aes(x = X1, y = X2, color = Outcome)) +
   geom_point() +
   ggtitle("t-SNE (Perplexity = 30)")
 
-# --- t-SNE ar perplexity = 80 ---
+# t-SNE ar perplexity = 80
 set.seed(42)
 tsne_80 <- Rtsne(unbalanced_numeric, dims = 2, perplexity = 80, verbose = FALSE, max_iter = 500)
 tsne_80_plot <- data.frame(tsne_80$Y, Outcome = unbalanced_labels)
@@ -61,22 +63,30 @@ p_tsne_80 <- ggplot(tsne_80_plot, aes(x = X1, y = X2, color = Outcome)) +
   geom_point() +
   ggtitle("t-SNE (Perplexity = 80)")
 
-# Apvienojam t-SNE rezultātus vienā attēlā
+# Rezultati
 tsne_results <- p_tsne_5 + p_tsne_30 + p_tsne_80
 tsne_results
 
 ```
 
+Nevienā no variantiem klases nav atdalītas.
 
+Variants ar `perplexity = 5` parāda datu kopas lokālo struktūru — ir redzama punktu mākoņa fragmentācija. Iespējams, tas norāda, ka punkti šajā datu kopā nav stingri saistīti.
+
+Ar `perplexity = 30`, manuprāt, tiek sasniegts labāks līdzsvars starp lokālo un globālo struktūru. Datu mākonis ir daudz kompaktāks, taču joprojām ir uztverams punktu grupējums mākoņa iekšienē.
+
+Ar `perplexity = 80` vairs nav tik labi pamanāma mākoņa iekšējā struktūra. Tomēr atšķirības ar iepriekšējo variantu nav tik lielas kā starp `perplexity = 5` un pārējiem. Tagad mākonis izskatās vēl blīvāks un kompaktāks nekā iepriekšējā variantā. Sarkanie punkti joprojām pilnībā saplūst ar zilajiem un nav atdalāmi no lielākās `Inactive` klases.
+
+**Secinājums:** lielāka perplexity vērtība liek `t-SNE` algoritmam vairāk koncentrēties uz datu kopas globālo struktūru.
 
 ## UMAP
 
-UMAP galvenais parametrs ir n_neighbors.
+`UMAP` algoritma galvenais parametrs ir `n_neighbors`. Tā vērtība nosaka, vai algoritmam jākoncentrējas uz vietējo vai globālo datu struktūru.
 
-```{r}
+```{r umap}
 library(umap)
 
-# --- UMAP ar n_neighbors = 5 ---
+# UMAP ar n_neighbors = 5
 set.seed(42)
 umap_5 <- umap(unbalanced_numeric, n_neighbors = 5)
 umap_5_plot <- data.frame(umap_5$layout, Outcome = unbalanced_labels)
@@ -84,7 +94,7 @@ p_umap_5 <- ggplot(umap_5_plot, aes(x = X1, y = X2, color = Outcome)) +
   geom_point() +
   ggtitle("UMAP (n_neighbors = 5)")
 
-# --- UMAP ar n_neighbors = 15 (noklusētā vērtība) ---
+# UMAP ar n_neighbors = 15 
 set.seed(42)
 umap_15 <- umap(unbalanced_numeric, n_neighbors = 15)
 umap_15_plot <- data.frame(umap_15$layout, Outcome = unbalanced_labels)
@@ -92,7 +102,7 @@ p_umap_15 <- ggplot(umap_15_plot, aes(x = X1, y = X2, color = Outcome)) +
   geom_point() +
   ggtitle("UMAP (n_neighbors = 15)")
 
-# --- UMAP ar n_neighbors = 45 ---
+# UMAP ar n_neighbors = 45 
 set.seed(42)
 umap_45 <- umap(unbalanced_numeric, n_neighbors = 45)
 umap_45_plot <- data.frame(umap_45$layout, Outcome = unbalanced_labels)
@@ -105,11 +115,27 @@ umap_results <- p_umap_5 + p_umap_15 + p_umap_45
 umap_results
 
 ```
+`UMAP` algoritms manā gadījumā darbojās lēnāk nekā `t-SNE`.
+
+`UMAP` algoritma darbības rezultātā tiek iegūti ģeometriski un kopumā daudz interesantākas formas “mākoņi”.
+
+Nevienā no variantiem klases nav atdalītas.
+
+Ar `n_neighbors = 5`, līdzīgi kā ar `t-SNE` algoritmu, izmantojot zemu `perplexity` vērtību, dati izskatās fragmentēti un diezgan haotiski. Viss “mākonis” sastāv no atsevišķi grupētu punktu klasteriem, kas lielākoties ir izstiepti, atšķirībā no pirmā `t-SNE` rezultāta, kur grupējums vairāk atgādināja “salas”.
+
+Ar `n_neighbors = 15` datu mākoņa forma kļūst skaidrāka un veido izliekta taisnstūra formu ar sazarotu galu. Klases joprojām nav atdalītas. Datu grupējums mākoņa iekšienē joprojām ir izteikts.
+
+Ar `n_neighbors = 45`, tāpat kā `t-SNE` gadījumā, izmantojot augstu `perplexity` vērtību, datu mākonis kļūst kompaktāks un punkti ir vairāk saspiesti kopā. Izmaiņas salīdzinājumā ar diviem iepriekšējiem variantiem vairs nav tik izteiktas. Tagad mākoņa forma ir mazāk izstiepta, un “sazarotais” taisnstūra gals ir apvienots vienā smailā formā. Iekšējais grupējums joprojām ir novērojams, taču tas ir mazāk izteikts.
+
+## salīdzinājums ar ISOMAP un PCA
+
+Tā kā ir izmantoti tie paši dati, es neatkārtošu kodu – tas ir pieejams iepriekšējā (9.) uzdevuma protokolā. Šeit aprakstīšu tikai atšķirības.
+
+Ar `t-SNE` un `UMAP` iegūtie mākoņa izkārtojumi ir samērā līdzīgi savā starpā (īpaši pie augstām `perplexity` un `n_neighbors` vērtībām), bet izteikti atšķiras no rezultātiem, kas tika iegūti ar `PCA` vai `ISOMAP` algoritmiem (to rezultāti arī bija līdzīgi savā starpā). `t-SNE` un `UMAP` attēlos (pie augstākām hiperparametru vērtībām) datu mākonis izskatās vairāk homogēni nekā attēlos, kas iegūti ar `PCA` un `ISOMAP` palīdzību, kur bija novērojamas atsevišķas vietas ar augstāku punktu blīvumu.
+
+Tomēr neviens no pārbaudītajiem algoritmiem nespēja nodalīt datos pastāvošās klases. Iespējams, starp abām klasēm nav skaidras, viegli atdalāmas robežas un tās nav dabiski sadalāmas esošajās klasēs. Tas, ka neviens no mēģinājumiem neizveidoja “sarkano punktu” klasteri (kas ietvertu vismaz daļu sarkano punktu), bet šie punkti vienmēr atradās kādā no zilo punktu grupējumiem, manuprāt, norāda uz to, ka klase `Active` satur punktus, kas faktiski ir daļa no lielās `Inactive` klases un nav unikāli pēc savām īpasībam.
 
 
-## ISOMAP 
-
-
-## PCA 
+**Secinājums:** `t-SNE` un `UMAP` atklāja, ka dati veido vienu, sarežģītu nelineāru struktūru, un apstiprināja, ka klase `Active` nav atsevišķs klasteris. Šajā uzdevumā pārbaudītie nelineārie algoritmi pārspēja `PCA` un `ISOMAP` spēju attēlot datu nelineāro topoloģiju. Tomēr tas pats par sevi neuzlaboja klašu atdalīšanu, jo, visticamāk, klases nav atdalāmas arī augstdimensiju telpā.
 
 
