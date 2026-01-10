@@ -1,0 +1,107 @@
+---
+title: "15.1 Speed Dating"
+author: "Jekaterīna Butkeviča"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+## Uzdevums
+
+Sameklējiet kādu lielu datu kopu (piemēram, tīmekļa servera žurnālu par pietiekami ilgu laika periodu). Izmantojot jebkādus Jums pieejamus līdzekļus (Excel tabulas, savas vai svešas programmas utml.), "izrociet" no šiem datiem kādu modeli vai šablonu. Raksturojiet savus atradumus no šajā kursā apgūtās teorijas viedokļa.
+
+
+## Dati
+
+Darbs ar parāk lielu datu kopu man vienmēr beidzas ar operatīvass atmiņas pārpildījumu. Tāpēc es paliku pie rās iepazīšanās (speed dating) eksperimenta datu kopas [avots](https://www.openml.org/search?type=data&status=active&id=40536), kas satur 8379 rindas jeb tikšanas. Dati tika ievākti laika posmā no 2002. līdz 2004. gadam Kolumbijas Biznesa skolā. Eksperimenta laikā dalībnieki piedalījās četrminūšu tikšanās reizēs ar katru pretējā dzimuma dalībnieku un pēc katras tikšanās pieņēma lēmumu, vai vēlētos ar šo personu satikties atkārtoti.
+
+Datu kopa ietver gan dalībnieku demogrāfisko informāciju, gan viņu pašvērtējumu, partneru vērtējumus un priekšstatus par to, kādas īpašības ir svarīgas potenciālajam partnerim. Papildus iekļauta informācija par interesēm, dzīvesveidu, iepazīšanās paradumiem un gaidām pirms pasākuma. Galvenais iznākuma mainīgais ir savstarpējas saderības jeb „match” esamība, kas ļauj analizēt faktorus, kuri ietekmē lēmumu par turpmāku iepazīšanos.
+
+
+## Uzdotais jautājums
+
+Es gribu noteikt, kuri no datukopā aprakstītājiem faktoriem visvairāk ietekmē vai cilvēki gribēs ieraudzities vēlreiz jeb randiņš beigsies ar "match" novērtējumu.
+
+
+## Datu sagatavošana
+
+Sākuma es bišķīn saīsinu kolonnu skaitu, izņemot vairākas kolonnas par interesēm jo rindu skaits, manuprāt, tomēr nav tik liels, lai atšķāidītu datus vēl vairāk.
+
+```{r dati}
+library(foreign)
+data <- read.arff("speeddating.arff")
+colnames(data)
+
+# Izvēlamies būtiskākās kolonnas (lai nesarežģītu modeli)
+df_subset <- data[, c("gender", "age", "d_age", "samerace", "importance_same_race",
+                  "field", "pref_o_attractive", "pref_o_sincere", 
+                  "pref_o_intelligence", "pref_o_funny", "pref_o_ambitious",
+                  "pref_o_shared_interests", "attractive_o", "sinsere_o",
+                  "intelligence_o", "funny_o", "ambitous_o", "shared_interests_o",
+                  "d_attractive_o", "d_sinsere_o", "d_intelligence_o", 
+                  "d_funny_o", "d_ambitous_o", "d_shared_interests_o", 
+                  "attractive_important", "sincere_important", "intellicence_important",
+                  "funny_important", "ambtition_important", "shared_interests_important",
+                  "d_attractive_important", "d_sincere_important", 
+                  "d_intellicence_important", "d_funny_important", "d_ambtition_important",
+                  "d_shared_interests_important", "attractive", "sincere", "intelligence",
+                  "funny", "ambition", "d_attractive", "d_sincere", "d_intelligence",
+                  "d_funny", "d_ambition", "attractive_partner", "sincere_partner",
+                  "intelligence_partner", "funny_partner", "ambition_partner",
+                  "shared_interests_partner", "d_attractive_partner", "d_sincere_partner",
+                  "d_intelligence_partner", "d_funny_partner", "d_ambition_partner",
+                  "d_shared_interests_partner", "like", "guess_prob_liked", "d_like",
+                  "d_guess_prob_liked", "met", "match")]
+
+write.arff(df_subset, file = "speeddating_short.arff")
+```
+
+## Izmantotas metodes
+
+Tālāk es izmantoju WEKĀ piedāvāto 
+
+Es nolēmu izmantot LMT (Logistic Model Tree) algoritmu, jo LMT koka galos tiek veidoti loģistiskās regresijas modeļi, kas ļauj kvantitatīvi novērtēt katra skaidrojošā mainīgā ietekmi uz varbūtību iegūt “match”. Vienlaikus koka struktūra ļauj identificēt dažādas dalībnieku apakšgrupas, kurās noteiktu faktoru ietekme var atšķirties.
+
+
+## Rezultāti
+
+Rezultātā tika iegūts koks ar vienu lapu: Number of Leaves = 1, Size of the Tree = 1, kas nozīme, ka dati netika sadalīti apakšgruppās un viens lineārs modelis jau spēj pietiekami labi klasificēt datus, un papildu koka zari klasifikācijas precizitāti būtiski neuzlabo, tādeļ ptimālais risinājums bija viens globāls loģistiskās regresijas modelis, jo faktoru ietekme uz “match” rasanos ir līdzīga visai izlasei.
+
+
+Kross-validācijā ar 10 foldiem tika iegūts šāds modeļa precizitātes movērtējums: 
+
+```
+
+Time taken to build model: 13.82 seconds
+
+=== Stratified cross-validation ===
+=== Summary ===
+
+Correctly Classified Instances        7189               85.8081 %
+Incorrectly Classified Instances      1189               14.1919 %
+Kappa statistic                          0.3536
+Mean absolute error                      0.2037
+Root mean squared error                  0.3198
+Relative absolute error                 73.9946 %
+Root relative squared error             86.2293 %
+Total Number of Instances             8378     
+
+=== Detailed Accuracy By Class ===
+
+                 TP Rate  FP Rate  Precision  Recall   F-Measure  MCC      ROC Area  PRC Area  Class
+                 0,965    0,683    0,878      0,965    0,919      0,382    0,847     0,963     0
+                 0,317    0,035    0,639      0,317    0,424      0,382    0,847     0,531     1
+Weighted Avg.    0,858    0,576    0,838      0,858    0,838      0,382    0,847     0,892     
+
+=== Confusion Matrix ===
+
+    a    b   <-- classified as
+ 6751  247 |    a = 0
+  942  438 |    b = 1
+```
+Kopumā modēļa precizitāte ir salīdzinoši augsta: 85.8 %, bet Kappa statistika, kas šim modelim ir vienāda ar 0.354, tomēr norāda, ka daļa pareizo klasifikāciju ir saistīta ar klases disbalansu (klase 0 dominē). Modelis ļoti labi atpazīst gadījumus, kad match nenotiek. Tomēr tikai ~32% no īstajiem “match” gadījumiem tiek pareizi klasificēti. Kas manuorāt nav pavisam slikti. Labāk neuzzināt, ka kadam patiki, nekā domāt, ka patiki, bet patiesība... Tāpēc uzskatu, ka situācija, kad m odelis ir piesardzīgs un bieži izvēlas “nav match”, taču, ja modelis tomēr prognozē “match”, tas bieži ir pareizi (jo salīdzinoši augsta precision), ir pieņemama.
+
+
+
+
+
