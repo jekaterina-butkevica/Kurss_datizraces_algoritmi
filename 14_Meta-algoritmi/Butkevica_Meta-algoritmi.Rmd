@@ -1,0 +1,371 @@
+---
+title: "14. Meta-algoritmi"
+author: "Jekaterīna Butkeviča"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+## Uzdevums
+
+1. Atrodiet internetā kādu interesantu datu kopu klasifikācijas uzdevumam (ja nekas cits neatrodas, izmantojiet kādu no WEKAs datu kopām vai iepriekšējo mājas darbu datu kopas). 
+
+2. Izvēlieties vienu no variantiem (vai abus): a) RandomForest, b) AdaBoost (vai kādu no jaunākiem "būsteriem", piemēŗam, XGBoost). Pirmais eksperiments: palielinot iterāciju skaitu, mēģiniet treniņa kopā sasniegt 100% klasifikācijas precizitāti. 
+
+3. Otrais: mainot visus pieejamos parametrus, mēģiniet sasniegt pēc iespējas labāku rezultātu kros-validācijas režīmā.
+
+
+## Dati
+
+Nolēmu izmantot datus no `Ionosphere` datu kopas. Dati satur ar radaru iegūtus signālus no jonosfēras, kas klasificēti divās grupās: “good” — signāli, kas norāda uz reālu objektu, un “bad” — signāli, kuros ir tikai troksnis. Kopumā datu kopā ir 351 novērojums ar 34 skaitliskiem mainīgajiem un bināru klasi (“good” — 225 ieraksti, “bad” — 126 ieraksti).
+
+
+## Pirmais eksperiments
+
+**Uzdevums:** palielinot iterāciju skaitu, mēģiniet treniņa kopā sasniegt 100% klasifikācijas precizitāti. 
+
+
+### RandomForest
+
+Izmantoju Random Forest algoritmu ar šādiem iestatījumiem:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numFeatures = 0.
+
+Pārbaudes veids: Use training set
+
+Veicu 15 mēģinājumus un pierakstu rezultātus datu tabulā:
+
+```{r RF_iterrations}
+RF1 <- data.frame(
+  Iteracijas = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+  Precizitate = c(97.7208, 98.2906, 98.5755, 99.4302, 99.1453, 99.7151, 99.7151, 100, 99.7151, 100, 99.7151, 100, 99.7151, 99.7151, 99.7151)
+  )
+```
+
+Vizualizēju iegūtos rezultātus:
+
+```{r RF_viz}
+library(ggplot2)
+library(cowplot)
+
+ggplot(RF1, aes(x = Iteracijas, y = Precizitate)) + 
+  geom_line() + 
+  geom_point() + 
+  scale_x_continuous(breaks = 1:15) + 
+  labs(
+    x = "Iterāciju skaits", 
+    y = "Pareizi klasificēto objektu skaits"
+  ) + 
+  theme_half_open() +
+  theme(
+    axis.title.x = element_text(face = "bold"),  
+    axis.title.y = element_text(face = "bold")   
+  )
+```
+
+Izmantojot RandomForest algoritmu ar iepriekš minētajiem iestatījumiem, precizitāti 100% pirmo reizi izdevās sasniegt pie iterāciju skaita 8. Turpinot palielināt iterāciju skaitu, precizitāte periodiski svārstījās starp 100% un 99,72%, līdz tā stabilizējās pie vērtības 99,72% (3 mēģinājumi).
+
+### AdaBoost
+
+Pielietoju AdaBoost algoritmu ar sekojošiem iestatījumiem:
+
+- kā bāzes algoritmu izmanotju J48;
+- useResampling = False.
+
+
+Pārbaudes veids: Use training set
+
+Veicu 15 mēģinājumus un pierakstīju rezultātus datu tabulā:
+
+```{r AB_iterrations}
+AB1 <- data.frame(
+  Iteracijas = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+  Precizitate = c(99.7151, 99.7151, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100)
+  )
+```
+
+
+Veicu rezultātu vizualizāciju:
+
+```{r AB_viz}
+ggplot(AB1, aes(x = Iteracijas, y = Precizitate)) + 
+  geom_line() + 
+  geom_point() + 
+  scale_x_continuous(breaks = 1:15) + 
+  labs(
+    x = "Iterāciju skaits", 
+    y = "Pareizi klasificēto objektu skaits"
+  ) + 
+  theme_half_open() +
+  theme(
+    axis.title.x = element_text(face = "bold"),  
+    axis.title.y = element_text(face = "bold")   
+  )
+```
+
+Izmantojot meta-algoritmu AdaBoost, precizitāte 100 % tika sasniegta pie trim iterācijām un saglabājās nemainīga arī, palielinot iterāciju skaitu.
+
+## Otrais eksperiments
+
+**Uzdevums:** mainot visus pieejamos parametrus, mēģiniet sasniegt pēc iespējas labāku rezultātu kros-validācijas režīmā.
+
+
+### RandomForest
+
+
+Izmantoju Random Forest algoritmu ar šādiem iestatījumiem:
+
+1. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 1;
+- numFeatures = 0.
+
+2. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 5;
+- numFeatures = 0.
+
+3. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 10;
+- numFeatures = 0.
+
+4. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 100;
+- numFeatures = 0.
+
+5. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 1;
+- numFeatures = 10.
+
+6. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 1;
+- numFeatures = 50.
+
+7. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 1;
+- numFeatures = 100.
+
+8. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 5;
+- numFeatures = 10.
+
+9. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 10;
+- numFeatures = 50.
+
+10. mēģinājums:
+
+- bagSizePercent = 100;
+- maxDepth = 0;
+- numIterations = 100;
+- numFeatures = 100.
+
+11. mēģinājums:
+
+- bagSizePercent = 80;
+- maxDepth = 0;
+- numIterations = 100;
+- numFeatures = 100.
+
+12. mēģinājums:
+
+- bagSizePercent = 70;
+- maxDepth = 0;
+- numIterations = 100;
+- numFeatures = 100.
+
+13. mēģinājums:
+
+- bagSizePercent = 80;
+- maxDepth = 0;
+- numIterations = 200;
+- numFeatures = 100.
+
+14. mēģinājums:
+
+- bagSizePercent = 75;
+- maxDepth = 0;
+- numIterations = 100;
+- numFeatures = 100.
+
+15. mēģinājums:
+
+- bagSizePercent = 50;
+- maxDepth = 0;
+- numIterations = 1000;
+- numFeatures = 100.
+
+
+Visos gadījumos pārbaudes veids: Cross-validation
+
+
+
+Veicu 15 mēģinājumus un pierakstīju rezultātus datu tabulā:
+
+```{r RF_cross}
+RF2 <- data.frame(
+  Meginajums = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+  Precizitate = c(87.1795, 91.1681, 92.8775, 92.8775, 84.6154, 87.1795, 87.1795, 92.0228, 92.0228, 92.8775, 93.7322, 93.4473, 93.1624, 93.7322, 93.1624)
+  )
+```
+
+Rezultātus vizualizēju:
+
+```{r RF_cross_viz}
+ggplot(RF2, aes(x = Meginajums, y = Precizitate)) + 
+  geom_point(size = 3) + 
+  scale_x_continuous(breaks = 1:15) + 
+  labs(
+    x = "Mēģinājums nr.", 
+    y = "Pareizi klasificēto objektu skaits"
+  ) + 
+  theme_half_open() +
+  theme(
+    axis.title.x = element_text(face = "bold"), 
+    axis.title.y = element_text(face = "bold")  
+  )
+```
+
+Izmantojot RandomForest algoritmu, augstākā sasniegtā precizitāte bija 93,73%, un to sasniedza 11. un 14. mēģinājumā.
+
+
+### AdaBoost
+
+Pielietoju AdaBoost algoritmu ar sekojošajiem iestatījumiem:
+
+- kā bāzes algoritmu izmantoju J48;
+
+1. mēģinājums:
+
+- batchSize = 100
+- useResampling = False.
+- numIterations = 10
+
+2. mēģinājums:
+
+- batchSize = 100
+- useResampling = False.
+- numIterations = 50
+
+3. mēģinājums:
+
+- batchSize = 100
+- useResampling = False.
+- numIterations = 100
+
+4. mēģinājums:
+
+- batchSize = 90
+- useResampling = False.
+- numIterations = 100
+
+5. mēģinājums:
+
+- batchSize = 80
+- useResampling = False.
+- numIterations = 100
+
+6. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 100
+
+7. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 100
+- resume = TRUE
+
+8. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 100
+- resume = TRUE
+- useResampling = TRUE
+
+9. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 200
+- resume = TRUE
+- useResampling = TRUE
+
+10. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 200
+- resume = TRUE
+- useResampling = TRUE
+- weightThreshold = 80
+
+11. mēģinājums:
+
+- batchSize = 50
+- useResampling = False.
+- numIterations = 200
+- resume = TRUE
+- useResampling = TRUE
+- weightThreshold = 20
+
+Visos gadījumos pārbaudes veids: Cross-validation
+
+Veicu 11 mēģinājumus un pierakstu rezultātus datu tabulā:
+
+```{r AB_cross}
+AB2 <- data.frame(
+  Meginajums = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+  Precizitate = c(93.1624, 93.4473, 93.7322, 93.7322, 93.7322, 93.7322, 93.7322, 94.8718, 94.8718, 94.302, 88.3191)
+  )
+```
+
+Apstājos pie 11 mēģinājumiem, jo vairs nebija ko mainīt. Uzskatu, ka nebūtu korekti mainīt pamata algoritmu un salīdzināt rezultātus savā starpā, tāpēc tika mainīti tikai pārējie iestatījumi.
+
+```{r AB_cross_viz}
+ggplot(AB2, aes(x = Meginajums, y = Precizitate)) + 
+  geom_point(size = 3) + 
+  scale_x_continuous(breaks = 1:15) + 
+  labs(
+    x = "Mēģinājums nr.", 
+    y = "Pareizi klasificēto objektu skaits"
+  ) + 
+  theme_half_open() +
+  theme(
+    axis.title.x = element_text(face = "bold"), 
+    axis.title.y = element_text(face = "bold")  
+  )
+```
+
+Izmantojot AdaBoost algoritmu, labākā precizitāte tika sasniegta 8. un 9. mēģinājumā, un tā bija 94,87%.
+
