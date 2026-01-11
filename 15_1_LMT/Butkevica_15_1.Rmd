@@ -1,5 +1,5 @@
 ---
-title: "15.1 Speed Dating"
+title: "15.1 Speed Dating (LMT)"
 author: "Jekaterīna Butkeviča"
 date: "`r Sys.Date()`"
 output: word_document
@@ -13,19 +13,19 @@ Sameklējiet kādu lielu datu kopu (piemēram, tīmekļa servera žurnālu par p
 
 ## Dati
 
-Darbs ar parāk lielu datu kopu man vienmēr beidzas ar operatīvass atmiņas pārpildījumu. Tāpēc es paliku pie rās iepazīšanās (speed dating) eksperimenta datu kopas [avots](https://www.openml.org/search?type=data&status=active&id=40536), kas satur 8379 rindas jeb tikšanas. Dati tika ievākti laika posmā no 2002. līdz 2004. gadam Kolumbijas Biznesa skolā. Eksperimenta laikā dalībnieki piedalījās četrminūšu tikšanās reizēs ar katru pretējā dzimuma dalībnieku un pēc katras tikšanās pieņēma lēmumu, vai vēlētos ar šo personu satikties atkārtoti.
+Darbs ar pārāk lielām datu kopām man bieži beidzas ar operatīvās atmiņas pārpildījumu. Tāpēc šajā uzdevumā es izvēlējos izmantot iepazīšanās (speed dating) eksperimenta datu kopu [avots](https://www.openml.org/search?type=data&status=active&id=40536), kas satur 8379 rindas jeb tikšanās. Dati tika ievākti laika posmā no 2002. līdz 2004. gadam Kolumbijas Biznesa skolā. Eksperimenta laikā dalībnieki piedalījās četrminūšu tikšanās reizēs ar katru pretējā dzimuma dalībnieku un pēc katras tikšanās pieņēma lēmumu, vai vēlētos ar šo personu satikties atkārtoti.
 
-Datu kopa ietver gan dalībnieku demogrāfisko informāciju, gan viņu pašvērtējumu, partneru vērtējumus un priekšstatus par to, kādas īpašības ir svarīgas potenciālajam partnerim. Papildus iekļauta informācija par interesēm, dzīvesveidu, iepazīšanās paradumiem un gaidām pirms pasākuma. Galvenais iznākuma mainīgais ir savstarpējas saderības jeb „match” esamība, kas ļauj analizēt faktorus, kuri ietekmē lēmumu par turpmāku iepazīšanos.
+Datu kopa ietver gan dalībnieku demogrāfisko informāciju, gan viņu pašvērtējumu, partneru vērtējumus un priekšstatus par to, kādas īpašības ir svarīgas potenciālajam partnerim. Papildus ir iekļauta informācija par interesēm un dzīvesveidu. Galvenais iznākuma mainīgais ir savstarpējas izvēles jeb “match” esamība, kas ļauj analizēt faktorus, kuri ietekmē lēmumu par turpmāku iepazīšanos.
 
 
 ## Uzdotais jautājums
 
-Es gribu noteikt, kuri no datukopā aprakstītājiem faktoriem visvairāk ietekmē vai cilvēki gribēs ieraudzities vēlreiz jeb randiņš beigsies ar "match" novērtējumu.
+Es vēlos noteikt, kuri no datu kopā aprakstītajiem faktoriem visvairāk ietekmē to, vai cilvēki vēlēsies satikties vēlreiz, t.i., vai randiņš beigsies ar “match” novērtējumu.
 
 
 ## Datu sagatavošana
 
-Sākuma es bišķīn saīsinu kolonnu skaitu, izņemot vairākas kolonnas par interesēm jo rindu skaits, manuprāt, tomēr nav tik liels, lai atšķāidītu datus vēl vairāk.
+Sākumā es nedaudz samazinu kolonnu skaitu, izņemot vairākas kolonnas par interesēm, jo rindu skaits, manuprāt, nav tik liels, lai vēl vairāk atšķaidīt datus.
 
 ```{r dati}
 library(foreign)
@@ -56,19 +56,15 @@ df_subset <- data[, c("gender", "age", "d_age", "samerace", "importance_same_rac
 write.arff(df_subset, file = "speeddating_short.arff")
 ```
 
-## Izmantotas metodes
+## Izmantotās metodes
 
-Tālāk es izmantoju WEKĀ piedāvāto 
-
-Es nolēmu izmantot LMT (Logistic Model Tree) algoritmu, jo LMT koka galos tiek veidoti loģistiskās regresijas modeļi, kas ļauj kvantitatīvi novērtēt katra skaidrojošā mainīgā ietekmi uz varbūtību iegūt “match”. Vienlaikus koka struktūra ļauj identificēt dažādas dalībnieku apakšgrupas, kurās noteiktu faktoru ietekme var atšķirties.
-
+Es izvēlējos LMT (Logistic Model Tree) algoritmu, jo LMT koka galos tiek veidoti loģistiskās regresijas modeļi, kas ļauj kvantitatīvi novērtēt katra skaidrojošā mainīgā ietekmi uz varbūtību iegūt “match”. Vienlaikus koka struktūra ļauj identificēt dalībnieku apakšgrupas, kurās noteiktu faktoru ietekme var atšķirties.
 
 ## Rezultāti
 
-Rezultātā tika iegūts koks ar vienu lapu: Number of Leaves = 1, Size of the Tree = 1, kas nozīme, ka dati netika sadalīti apakšgruppās un viens lineārs modelis jau spēj pietiekami labi klasificēt datus, un papildu koka zari klasifikācijas precizitāti būtiski neuzlabo, tādeļ ptimālais risinājums bija viens globāls loģistiskās regresijas modelis, jo faktoru ietekme uz “match” rasanos ir līdzīga visai izlasei.
+Rezultātā tika iegūts koks ar vienu lapu: `Number of Leaves = 1, Size of the Tree = 1`, kas nozīmē, ka dati netika sadalīti apakšgrupās, un viens lineārs modelis jau spēj pietiekami labi klasificēt datus. Papildu koka zari klasifikācijas precizitāti būtiski neuzlabo, tādēļ optimālais risinājums ir viens globāls loģistiskās regresijas modelis, jo faktoru ietekme uz “match” varbūtību ir līdzīga visai izlasei.
 
-
-Kross-validācijā ar 10 foldiem tika iegūts šāds modeļa precizitātes movērtējums: 
+Krosvalidācijā ar 10 foldiem tika iegūts šāds modeļa precizitātes novērtējums:
 
 ```
 
@@ -99,9 +95,144 @@ Weighted Avg.    0,858    0,576    0,838      0,858    0,838      0,382    0,847
  6751  247 |    a = 0
   942  438 |    b = 1
 ```
-Kopumā modēļa precizitāte ir salīdzinoši augsta: 85.8 %, bet Kappa statistika, kas šim modelim ir vienāda ar 0.354, tomēr norāda, ka daļa pareizo klasifikāciju ir saistīta ar klases disbalansu (klase 0 dominē). Modelis ļoti labi atpazīst gadījumus, kad match nenotiek. Tomēr tikai ~32% no īstajiem “match” gadījumiem tiek pareizi klasificēti. Kas manuorāt nav pavisam slikti. Labāk neuzzināt, ka kadam patiki, nekā domāt, ka patiki, bet patiesība... Tāpēc uzskatu, ka situācija, kad m odelis ir piesardzīgs un bieži izvēlas “nav match”, taču, ja modelis tomēr prognozē “match”, tas bieži ir pareizi (jo salīdzinoši augsta precision), ir pieņemama.
+Kopumā modeļa precizitāte ir salīdzinoši augsta – 85,8 %, tomēr Kappa statistika (0,354) norāda, ka daļa pareizo klasifikāciju ir saistīta ar klases disbalansu, jo klase 0 dominē. Modelis ļoti labi atpazīst gadījumus, kad “match” nenotiek, taču tikai aptuveni 32 % no īstajiem “match” gadījumiem tiek pareizi klasificēti. Tas, manuprāt, nav pavisam slikti – labāk neuzzināt, ka kādam patīci, nekā domāt, ka patīci, bet patiesībā tā nav. Tāpēc situācija, kad modelis ir piesardzīgs un bieži izvēlas “nav match”, taču, ja tas prognozē “match”, tas bieži ir pareizi (salīdzinoši augsta precision), ir pieņemama.
 
 
+Varbūtību iegūt “match” pozitīvi ietekmē partnera vērtējums par respondentu: `attractive_o` (+0,13), `funny_o` (+0,14) un `shared_interests_o` (+0,02). Jo augstāk partneris novērtē respondenta pievilcību, humora izjūtu un kopīgās intereses randiņa laikā, jo lielāka ir iespēja, ka randiņš beigsies ar “match”. Tas uzsver partnera subjektīvās uztveres nozīmi kā vienu no galvenajiem iznākuma noteicējiem. Arī subjektīvā simpātija un uztvertā savstarpējā interese pozitīvi ietekmē “match” varbūtību: `like` (+0,12), `guess_prob_liked` (+0,09) un `d_like` [6–8] (+0,26). Ja respondents izjūt simpātijas pret partneri un uzskata, ka tās ir savstarpējas, “match” varbūtība būtiski palielinās. Līdzībai starp partneriem ir nozīme – pozitīva ietekme novērota, ja atšķirības ir nelielas: `d_intelligence_o` [0–5] (+0,21), `d_shared_interests_o` [0–5] (+0,25), `d_funny_partner` [0–5] (+0,22) un `d_shared_interests_partner` [0–5] (+0,11). 
+
+Savukārt negatīvu ietekmi uz “match” varbūtību rada vecuma starpība un sociālie uzskati: `d_age` (–0,01) un `importance_same_race` (–0,02). Lielāka vecuma starpība un augstāka nozīme, ko respondents piešķir rasu līdzībai, nedaudz samazina “match” iespēju. Negatīvi ietekmē arī ievērojamas atšķirības starp partneriem: piemēram, `d_funny_o` [9–10] (–0,10) un `d_intelligence_partner` [0–5] (–0,15).
+
+Mainīgajam `met`, kas raksturo, vai partneri bija satikušies iepriekš, ir neliela pozitīva ietekme uz “match” varbūtību (β = +0,11). Tomēr šī ietekme ir salīdzinoši vāja un to var uzskatīt par sekundāru salīdzinājumā ar partnera subjektīvo vērtējumu un savstarpējo simpatiju.
 
 
+LMT modeļa rezultāti liecina, ka galvenie faktori, kas nosaka, vai randiņš beigsies ar “match”, ir partnera subjektīvais vērtējums par respondentu randiņa laikā – īpaši pievilcība, humors un kopīgās intereses – kā arī respondenta paša uztvertā savstarpējā patika. Deklarētās preferences un demogrāfiskie faktori spēlē sekundāru lomu, savukārt lielāka saskaņa starp partneriem palielina “match” varbūtību.
 
+
+Pieliku arī uzģenerēto koku:
+
+Number of Leaves : 1 
+Size of the Tree : 1 
+
+LM_1: 
+
+Class 0 : 
+4.79 + [d_age] * 0.01 + 
+[importance_same_race] * 0.02 + 
+[field=Art History/medicine] * -0.9 + 
+[field=Biochemistry & Molecular Biophysics] * -0.59 + 
+[field=Biology] * -0.41 + 
+[field=Business] * -0.18 + 
+[field=Business [MBA]] * -0.43 + 
+[field=Classics] * -0.73 + 
+[field=Climate Dynamics] * -0.64 + 
+[field=Clinical Psychology] * -0.38 + 
+[field=Communications] * -0.63 + 
+[field=Financial Engineering] * -0.49 + 
+[field=General management/finance] * -0.74 + 
+[field=German Literature] * -1.06 + 
+[field=GS Postbacc PreMed] * -0.49 + 
+[field=Higher Ed. - M.A.] * -0.86 + 
+[field=International Educational Development] * -0.56 + 
+[field=International Relations] * -0.62 + 
+[field=law] * -0.25 + 
+[field=Law/Business] * -0.71 + 
+[field=MA Science Education] * -0.77 + 
+[field=Masters in Public Administration] * -1.13 + 
+[field=math] * -0.91 + 
+[field=medicine] * -0.95 + 
+[field=Medicine] * 0.4 + 
+[field=Microbiology] * 0.48 + 
+[field=money] * -0.79 + 
+[field=Neurobiology] * -0.61 + 
+[field=Neuroscience] * 0.74 + 
+[field=Organizational Psychology] * -0.53 + 
+[field=physics] * -0.58 + 
+[field=Polish] * -1.09 + 
+[field=Religion] * -0.54 + 
+[field=Sociomedical Sciences- School of Public Health] * -1.02 +
+[pref_o_intelligence] * -0.01 + 
+[pref_o_ambitious] * 0.01 + 
+[attractive_o] * -0.13 + 
+[funny_o] * -0.14 + 
+[ambitous_o] * 0.05 + 
+[shared_interests_o] * -0.02 + 
+[d_attractive_o=[6-8]] * -0.18 + 
+[d_intelligence_o=[0-5]] * 0.21 + 
+[d_funny_o=[9-10]] * 0.1 + 
+[d_shared_interests_o=[0-5]] * 0.25 + 
+[d_intellicence_important=[21-100]] * -0.14 + 
+[d_attractive=[0-5]] * -0.17 + 
+[d_intelligence=[9-10]] * 0.09 + 
+[d_funny=[9-10]] * 0.07 + 
+[attractive_partner] * -0.12 + 
+[funny_partner] * -0.02 + 
+[ambition_partner] * 0.03 + 
+[d_attractive_partner=[6-8]] * -0.1 + 
+[d_intelligence_partner=[0-5]] * 0.15 + 
+[d_funny_partner=[0-5]] * 0.22 + 
+[d_shared_interests_partner=[0-5]] * 0.11 + 
+[like] * -0.12 + 
+[guess_prob_liked] * -0.09 + 
+[d_like=[6-8]] * -0.26 + 
+[met] * -0.11 
+
+Class 1 : 
+-4.79 + [d_age] * -0.01 + 
+[importance_same_race] * -0.02 + 
+[field=Art History/medicine] * 0.9 + 
+[field=Biochemistry & Molecular Biophysics] * 0.59 + 
+[field=Biology] * 0.41 + 
+[field=Business] * 0.18 + 
+[field=Business [MBA]] * 0.43 + 
+[field=Classics] * 0.73 + 
+[field=Climate Dynamics] * 0.64 + 
+[field=Clinical Psychology] * 0.38 + 
+[field=Communications] * 0.63 + 
+[field=Financial Engineering] * 0.49 + 
+[field=General management/finance] * 0.74 + 
+[field=German Literature] * 1.06 + 
+[field=GS Postbacc PreMed] * 0.49 + 
+[field=Higher Ed. - M.A.] * 0.86 + 
+[field=International Educational Development] * 0.56 + 
+[field=International Relations] * 0.62 + 
+[field=law] * 0.25 + 
+[field=Law/Business] * 0.71 + 
+[field=MA Science Education] * 0.77 + 
+[field=Masters in Public Administration] * 1.13 + 
+[field=math] * 0.91 + 
+[field=medicine] * 0.95 + 
+[field=Medicine] * -0.4 + 
+[field=Microbiology] * -0.48 + 
+[field=money] * 0.79 + 
+[field=Neurobiology] * 0.61 + 
+[field=Neuroscience] * -0.74 + 
+[field=Organizational Psychology] * 0.53 + 
+[field=physics] * 0.58 + 
+[field=Polish] * 1.09 +
+[field=Religion] * 0.54 + 
+[field=Sociomedical Sciences- School of Public Health] * 1.02 + 
+[pref_o_intelligence] * 0.01 + 
+[pref_o_ambitious] * -0.01 + 
+[attractive_o] * 0.13 + 
+[funny_o] * 0.14 + 
+[ambitous_o] * -0.05 + 
+[shared_interests_o] * 0.02 + 
+[d_attractive_o=[6-8]] * 0.18 + 
+[d_intelligence_o=[0-5]] * -0.21 + 
+[d_funny_o=[9-10]] * -0.1 +
+[d_shared_interests_o=[0-5]] * -0.25 + 
+[d_intellicence_important=[21-100]] * 0.14 + 
+[d_attractive=[0-5]] * 0.17 + 
+[d_intelligence=[9-10]] * -0.09 + 
+[d_funny=[9-10]] * -0.07 + 
+[attractive_partner] * 0.12 + 
+[funny_partner] * 0.02 + 
+[ambition_partner] * -0.03 + 
+[d_attractive_partner=[6-8]] * 0.1 + 
+[d_intelligence_partner=[0-5]] * -0.15 + 
+[d_funny_partner=[0-5]] * -0.22 + 
+[d_shared_interests_partner=[0-5]] * -0.11 + 
+[like] * 0.12 + 
+[guess_prob_liked] * 0.09 + 
+[d_like=[6-8]] * 0.26 + 
+[met] * 0.11
