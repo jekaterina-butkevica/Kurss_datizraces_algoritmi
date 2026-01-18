@@ -7,8 +7,7 @@ output: word_document
 
 
 ## Uzdevums
-Eirovīzijas dziesmu konkursa arhīvos ir sakrājusies bagātīga informācija par to, kā katras valsts klausītāji katru gadu ir balsojuši. Viegli pamanīt, ka balso
-jumos izpaužas "kaimiņu būšana" - norvēģi labprāt balso par zviedriem un otrādi, par Balkāniem nemaz nerunāsim... 
+Eirovīzijas dziesmu konkursa arhīvos ir sakrājusies bagātīga informācija par to, kā katras valsts klausītāji katru gadu ir balsojuši. Viegli pamanīt, ka balsojumos izpaužas "kaimiņu būšana" - norvēģi labprāt balso par zviedriem un otrādi, par Balkāniem nemaz nerunāsim... 
 
 1. Vai Jūs pratīsiet "izrakt" no datiem šīs "kaimiņu būšanas" skaitliskos lielumus? 
 2. Un tad - "izlabot" balsošanas rezultātus, padarot tos "objektīvākus"?
@@ -16,14 +15,15 @@ jumos izpaužas "kaimiņu būšana" - norvēģi labprāt balso par zviedriem un 
 
 ## Dati
 
-Paņēmu datus par pēdējo piecu gadu balsojumiem (2019.- 2024. gadi, izņemot 2020., no tajā gada Eirovīžija nenotika). Datus ņemu no šis vietnes: https://eurovisionworld.com/eurovision/.
+Paņēmu datus par pēdējo piecu gadu balsojumiem (2019.–2024. gadi, izņemot 2020. gadu, jo tajā Eirovīzija nenotika). Datus ņemu no šīs vietnes: https://eurovisionworld.com/eurovision/.
 
-Sākuma man bija matricas ar katras balsošanas valsti pret katru dalībvalsti katram gadam atsevisķi. Apvienoju datus un pārveršu garā formatā:
+Sākotnēji man bija matricas ar katras balsojošās valsts balsīm pret katru dalībvalsti katram gadam atsevišķi. Es apvienoju datus un pārveidoju garajā formātā:
 
 ```{r dati, warning=FALSE, message=FALSE}
 library(readxl)
 library(dplyr)
 library(tidyr)
+library(ggplot2)
 
 file <- "Eurovision_points.xlsx"
 years <- excel_sheets(file)
@@ -40,22 +40,25 @@ edata <- lapply(years, function(y){
 head(edata)
 ```
 
-Tagad mums ir datu tabula, kur:
+Tagad mums ir datu tabula, kurā:
 
-- `voter` – balsojošā valsts
-- `receiver` – valsts, kas saņem punktus
-- `points` – piešķirto punktu skaits
-- `year` – gads
-
-
-## Pirmais uzdevums – Kaimiņu būšana
-
-Ir divi iespējami iemesli, kāpēc A valsts dod B valstij daudz punktu: A. Dziesma ir laba; B. Valsti ir kultūra tūvi/ saprotāmāki viens otrām/ labākas attiecības - kaimiņu efekts. Un iegūtie novērtējumi ir A + B kopā. Piemēram, ja Zviedrija regulāri uzstājas ar labam dziesmam un visi par to balso, tad augsts novērtējums Zviedrijai no Norveģijas nepierāda kaimiņu efektu.
-
-Tad kaimiņu efektu var definēt kā lielākais punktu skaits, nekā šī valsts parasti dod citiem. Tādēļ aprēķinām novirzi no balsotāja vidējā:
+-`voter` – balsojošā valsts;
+-`receiver` – valsts, kas saņem punktus
+-`points` – piešķirto punktu skaits
+-`year` – gads
 
 
-```{r }
+## Pirmais uzdevums – kaimiņu būšana
+
+Ir divi iespējamie iemesli, kāpēc A valsts dod B valstij daudz punktu:
+A. Dziesma ir laba.
+B. Valstīm ir līdzīga kultūra, tās ir saprotamākas viena otrai vai ir labākas attiecības starp valstīm – kaimiņu efekts.
+
+Iegūtie novērtējumi ir A + B kopā. Piemēram, ja Zviedrija regulāri uzstājas ar labām dziesmām un visi par tām balso, tad augsts novērtējums Zviedrijai no Norvēģijas nepierāda kaimiņu efektu.
+
+Kaimiņu efektu var definēt kā pastāvīgu, atkārtotu novirzi vieniem un tiem pašiem valstu pāriem. Tādēļ aprēķinām novirzi no balsotāja vidējā:
+
+```{r novirze_no_videja}
 bias_norm <- edata %>%
   filter(!is.na(points)) %>%
   group_by(voter) %>%
@@ -64,10 +67,9 @@ bias_norm <- edata %>%
   mutate(bias = points - voter_mean)
 ```
 
-Apreķinām vidējo novirzi pa valsts pariem un gadu skaitu, kuros valsts A ir balsojis par valsts B.
+Aprēķinām vidējo novirzi pa valstu pāriem un gadu skaitu, kuros valsts A ir balsojusi par valsti B.
 
 ```{r}
-# Aprēķinām vidējo bias pa pāriem un gadu skaitu
 heat_data <- bias_norm %>%
   group_by(voter, receiver) %>%
   summarise(
@@ -75,123 +77,215 @@ heat_data <- bias_norm %>%
     n_years = n(),
     .groups = "drop"
   )
-
-
 ```
 
-Vizualizējam heatmap attēlā:
+
+Vizualizējam siltuma karti:
 
 ```{r}
-ggplot(heat_data, aes(x = voter, y = receiver, fill = mean_bias)) +
-  geom_tile(color = "white", na.rm = TRUE) +  # krāsas robežas ap šūnām
+heat_before <- bias_norm %>%
+  group_by(voter, receiver) %>%
+  summarise(mean_bias = mean(bias, na.rm = TRUE), .groups = "drop")
+
+ggplot(heat_before,
+       aes(x = voter, y = receiver, fill = mean_bias)) +
+  geom_tile() +
   scale_fill_gradient2(
-    low = "blue",       # negatīvs bias = mazāk nekā parasti
-    mid = "white",      # bias ~0 = norma
-    high = "red",       # pozitīvs bias = vairāk nekā parasti
-    midpoint = 0,
-    na.value = "white"  # NA šūnas melnas
-  ) +
-  # NA krusts
-  geom_point(
-    data = subset(heat_data, is.na(mean_bias)),
-    aes(x = voter, y = receiver),
-    shape = 4,       # shape = 4 → krusts
-    color = "gray",
-    size = 3
-  ) +
+    low = "blue", mid = "white", high = "red",
+    midpoint = 0, limits = c(-16, 16)
+  )  +
   labs(
-    title = "Balsošanas novirze no balsotāja vidējā (n ≥ 2 gadi)",
+    title = "Balsošanas novirze no balsotāja vidējā (pirms korekcijas)",
     x = "Balsojošā valsts",
     y = "Saņēmēja valsts",
-    fill = "Bias (punkti)"
-  ) +
+    fill = "Bias"
+  ) + 
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = 90, size = 10, vjust = 0.5, hjust = 1),
     axis.text.y = element_text(size = 10),
-    panel.grid.major = element_blank(),  # noņem major līnijas
-    panel.grid.minor = element_blank(),  # noņem minor līnijas
-    panel.background = element_rect(fill = "white"), # fona krāsa
-    plot.background = element_rect(fill = "white")   # fona krāsa ap plotu
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank()
   )
 ```
 
-Sarkanās krāsas norāda, ka valsts A dod valsts B vairāk punktu nekā parasti — tieši tas parāda kaimiņefektu. Zilās krāsas norāda, ka punktu skaits ir zem parastā.
 
-##############################
-##############################
+Sarkanā krāsa norāda, ka valsts A piešķir valstij B vairāk punktu nekā parasti — tas parāda kaimiņefektu. Zilā krāsa norāda, ka punktu skaits ir zem parastā, savukārt krāsa, kas tuvu baltajai, — ka punktu skaits ir ap normu. Pelēkā krāsa norāda uz `NA` vērtībām.
 
+
+Zviedrija vidēji dod vairāk punktu Norvēģijai, Islandei, Horvātijai, Spānijai un Šveicei.
+Norvēģija vidēji dod izteikti vairāk punktu Zviedrijai un nedaudz vairāk nekā videji — Maltai.
+Serbija ļoti izteikti favoritizē Horvātiju un Ziemeļmaķedoniju.
+Melnkalne vidēji dod vairāk punktu Albānijai, Rumānijai, Serbijai, Krievijai, Spānijai un Ukrainai.
+Latvija vidēji dod vairāk punktu Lietuvai, Ukrainai un Krievijai.
+Igaunija vidēji vairāk punktu dod Horvātijai un Somijai.
+Krievija favoritizē Azerbaidžānu, Baltkrieviju un Moldovu.
+
+Redzams, ka lielākajā daļā attēlā demonstrētā gadījuma izpaužas kaimiņu efekts, tomēr tas dažkārt saskan arī ar dziesmu kvalitāti vai citiem signāliem (piemēram, Zviedrijas simpātija Spānijai). Svarīgi atzīmēt, ka 5 gadi ir salīdzinoši īss periods, lai skaidri atdalītu kvalitātes signālu no balsošanas tendencēm. 
 
 ## Otrais uzdevums – balsošanas rezultātu korekcija
 
+Lai koriģētu Eirovīzijas balsošanas rezultātus, no iegūto punktu skaita atņemam novirzi.
 
 ```{r}
 edata_corrected <- bias_norm %>%
   left_join(heat_data %>% select(voter, receiver, mean_bias),
             by = c("voter", "receiver")) %>%
   mutate(
-    corrected_points = points - mean_bias
+    mean_bias = ifelse(is.na(mean_bias), 0, mean_bias),
+    corrected_bias = bias - mean_bias, # vizualizācijām
+    objective_points = points - mean_bias # objektīvie punkti top rezultātiem
   )
 ```
 
-corrected_points → objektīvāki punkti, kur noņemts pāru specifiskais bias
+Tagad `corrected_points` mainīga atrodas objektīvāki punkti, kur noņemts pāru specifiskais bias. Tagad: ja dziesma ir laba, tā saņem daudz punktu no visiem, bet, punkti netiek mākslīgi palielināti, ja valsti "drauzdzējas". Tagad valsts aizņem augstu vietu tikai, ja to konsekventi augsti vērtē daudz valstis.
 
-tagad:
-
-ja dziesma ir laba → saņem daudz punktu no visiem
-
-ja valsts ir kaimiņvalsts → netiek mākslīgi palielināti punkti
+Koriģētā novirze `corrected_bias` attiecas uz katru valsts balsojumu konkrētajā gadā, noņemot šim pārim raksturīgo vidējo kaimiņefektu, kas aprēķināts no visiem pieejamajiem gadiem. Šī vērtība rāda, cik konkrētā dziesma gadā pārsniedz vai atpaliek no sistemātiskā kaimiņefekta.
 
 
+Salīdzinājumam – Top 10 valstu summētie punkti pirms korekcijas (visā apskatītajā periodā):
+
+```{r top10_pirms}
+top_countries_raw <- edata %>%
+  group_by(receiver) %>%
+  summarise(total_points = sum(points, na.rm = TRUE)) %>%
+  arrange(desc(total_points)) %>%
+  head(10)
+
+top_countries_raw
+```
+
+Lai iegūtu objektīvo valstu topu (visā apskatītajā periodā), tiek izmantoti `corrected_points` — sākotnējie punkti ar atņemtu pāru vidējo kaimiņefektu, summēti pāri visiem gadiem.
 
 ```{r}
-top_countries <- edata_corrected %>%
+top_countries <- edata_corrected %>% 
   group_by(receiver) %>%
-  summarise(total_points = sum(corrected_points, na.rm = TRUE)) %>%
-  arrange(desc(total_points)) %>%
+  summarise(total_objective = sum(objective_points, na.rm = TRUE)) %>%
+  arrange(desc(total_objective)) %>%
   head(10)
 
 top_countries
 ```
 
+Izveidotie saraksti nedaudz savā starpā atšķiras – nedaudz izmainījies tajos iekļauto valstu saraksts, kā arī būtiski izmainījušās valstu aizņemtās “vietas”, jo tika izņemts sistemātiskais kaimiņefekts, saglabājot tikai to balsojuma daļu, ko nevar izskaidrot ar pastāvīgām savstarpējām simpātijām.
 
 
+Vizualizējam siltuma karti:
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-corrected <- data_all %>%
-  group_by(voter) %>%
-  mutate(voter_mean = mean(points, na.rm = TRUE),
-         corrected_points = points - voter_mean) %>%
-  ungroup()
-```
-
-
-```{r}
-
-pair_bias <- data_all %>%
+```{r pec}
+heat_after <- edata_corrected %>%
   group_by(voter, receiver) %>%
-  summarise(pair_mean = mean(points), .groups = "drop")
+  summarise(
+    mean_corrected = mean(corrected_bias, na.rm = TRUE),
+    .groups = "drop"
+  )
 
-corrected2 <- data_all %>%
-  left_join(pair_bias, by = c("voter", "receiver")) %>%
-  mutate(corrected_points = points - pair_mean)
+ggplot(heat_after,
+       aes(x = voter, y = receiver, fill = mean_corrected)) +
+  geom_tile() +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red",
+    midpoint = 0, limits = c(-1, 1)
+  ) +
+  labs(
+    title = "Koriģētā balsošana pēc kaimiņefekta izņemšanas",
+    x = "Balsojošā valsts",
+    y = "Saņēmēja valsts",
+    fill = "Koriģētais bias"
+  ) + 
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 10, vjust = 0.5, hjust = 1),
+    axis.text.y = element_text(size = 10),
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank()
+  )
 ```
 
 
 
+
+Salīdzinot balsošanas noviržu telpisko struktūru pirms un pēc korekcijas (no katras balsojuma novirzes tiek atņemts pāra vidējais bias), “pirms korekcijas” siltuma kartē skaidri izceļas reģionāli balsošanas bloki, savukārt pēc korekcijas šīs struktūras izzūd, un novirzes koncentrējas ap nulli, kas apliecina, ka sistemātiskais kaimiņefekts ir veiksmīgi izņemts.
+
+Visticamāk, kopā ar kaimiņefektu ir noņemta arī daļa no “īsta signāla”, jo pieci gadi ir pārāk īss periods, lai atdalītu kvalitātes signālu no balsošanas tendencēm. Izlases apjoma palielināšana, manuprāt, ļautu sasniegt labāku rezultātu.
+
+Lai labāk pārbaudītu kaimiņu efekta korekcijas rezultātu, salīdzinu balsošanas noviržu blīvuma sadalījumu pirms un pēc korekcijas.
+
+```{r sadal}
+bind_rows(
+  edata_corrected %>% mutate(type = "Pēc korekcijas", value = corrected_bias),
+  bias_norm %>% mutate(type = "Pirms korekcijas", value = bias)
+) %>%
+  mutate(type = factor(type, levels = c("Pirms korekcijas", "Pēc korekcijas"))) %>%  # šeit mainām secību
+  ggplot(aes(value, fill = type)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  facet_wrap(~type, ncol = 1) +
+  labs(
+    title = "Balsošanas noviržu sadalījums pirms un pēc korekcijas",
+    x = "Novirze no vidējā",
+    y = "Blīvums"
+  ) +
+  theme_minimal()
+```
+
+
+Pirms korekcijas sadalījums bija bez izteiktas virsotnes un ar smagām astēm, kas norādīja uz sistemātisku savstarpēju balsošanu starp valstīm. Pēc korekcijas sadalījuma virsotne pārbīdījās uz nulli, un ekstremālas novirzes samazinājās, kas apliecina, ka sistemātiskās savstarpējās simpātijas ir izņemtas.
+
+
+Pārbaudām izmaiņas dispersijā:
+
+```{r}
+bias_norm %>%
+  summarise(var_before = var(bias, na.rm = TRUE))
+
+edata_corrected %>%
+  summarise(var_after = var(corrected_bias, na.rm = TRUE))
+
+```
+Dispērsija ir samazinājusies.
+
+Kaimiņu efekts statistiski izpaužas kā pastāvīga, atkārtojoša balsošanas novirze starp konkrētiem valstu pāriem, radot stabilas pozitīvas vai negatīvas vērtības balsojuma sadalījumā un palielinot kopējo izkliedi. Veicot korekciju, no katras balsošanas novirzes tiek atņemts šim valstu pārim raksturīgais vidējais bias, tādējādi izņemot sistemātisko komponenti un atstājot tikai nejaušās svārstības un dziesmas kvalitātes signālu.
+
+Novērotais variances samazinājums pēc korekcijas apliecina, ka balsojumā pastāvēja strukturēts, nevis nejaušs efekts, jo gadījumā ar nejaušu troksni korekcija varianci nemainītu. Variance samazinās tikai tad, ja tiek noņemta atkārtojoša struktūra. Tomēr variances samazinājums pats par sevi nenozīmē, ka ir izņemti visi politiskie efekti; tas drīzāk apliecina sistemātiska pāru līmeņa efekta klātbūtni.
+
+## Izlabotie balsošanas rezultāti 2024. gadam
+
+Top 10 valstu saraksts pirms korekcijas veikšanas (oficiālie Eirovīzijas 2024 rezultāti):
+
+```{r 2024_pirms}
+top10_2024_raw <- edata %>%
+  filter(year == 2024) %>%
+  group_by(receiver) %>%
+  summarise(total_points_2024 = sum(points, na.rm = TRUE)) %>%
+  arrange(desc(total_points_2024)) %>%
+  head(10)
+
+top10_2024_raw
+```
+
+Un rezultātus ieviešot kaimiņu efekta korekciju:
+
+```{r}
+top10_2024_corrected <- edata %>%
+  filter(year == 2024) %>%
+  left_join(
+    heat_data %>% select(voter, receiver, mean_bias),
+    by = c("voter", "receiver")
+  ) %>%
+  mutate(
+    mean_bias = ifelse(is.na(mean_bias), 0, mean_bias),
+    corrected_points = points - mean_bias
+  ) %>%
+  group_by(receiver) %>%
+  summarise(total_corrected_2024 = sum(corrected_points, na.rm = TRUE)) %>%
+  arrange(desc(total_corrected_2024)) %>%
+  head(10)
+
+top10_2024_corrected
+```
+
+Korekcijas rezultātā no Top 10 valstu saraksta 2024. gadam pazuda Zvierija, bet pievienojās Vācija. Arī vietas, kuras aizņem konkrētas valstis, ir mainījušās.
 
 
 
