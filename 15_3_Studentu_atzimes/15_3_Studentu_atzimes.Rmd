@@ -1,0 +1,127 @@
+---
+title: "15_3_Studentu_atzimes"
+author: "Jekaterīna Butkeviča"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+
+## Uzdevums
+
+Ir dota Excel tabula, kas satur ap 350 studentu saņemtās atzīmes bakalaura un maģistra programmās 2000.-2007.gados. Kādus secinājumus no šiem datiem Jūs spēsiet izrakt? 
+Es pats ar šo datu palīdzību pamatoju savu priekšlikumu turpmāk uzņemt maģistrantūrā bez konkursa nevis cilvēkus ar bakalaura darba atzīmēm 9 un 10, bet tos, kuriem vidējā svērtā atzīme UN bakalaura darba atzīme nav mazākas par 8.
+
+## Dati
+
+```{r dat}
+library(readxl)
+bak <- read_excel("studentu_sekmes2.xls", sheet = "sekmes_bak")
+mag <- read_excel("studentu_sekmes2.xls", sheet = "sekmes_mag",  col_types = "text") #citādi rodas probleēma ar 6. kolonnu
+```
+
+
+
+### Datu tirīšana
+
+```{r tir}
+library(dplyr)
+# Pārvēršam atzīmes par skaitļiem (izmetot 'ieskaite' un neesošas atzīmes)
+bak_clean <- bak %>%
+  mutate(ATZIME = as.numeric(as.character(BAK_ATZIME))) %>%
+  filter(!is.na(ATZIME), ATZIME > 0)
+
+mag_clean <- mag %>%
+  mutate(ATZIME = as.numeric(as.character(MAG_ATZIME))) %>%
+  filter(!is.na(ATZIME), ATZIME > 0)
+```
+
+### Bakalaura studiju programmas studenti
+
+Pārbaudu vai studentu kodi sakrīt starp bakalaura un magistratūras studentiem.
+
+
+```{r tets}
+# Iegūstam unikālos kodus no abām kopām
+length(bak_kodi <- unique(bak_clean$CILVEKS_CKODS))
+length(mag_kodi <- unique(mag_clean$CILVEKS_CKODS))
+
+# Atrodam kodus, kas ir abos sarakstos
+length(kopejie_kodi <- intersect(bak_kodi, mag_kodi))
+```
+
+Uz acs man likas, ka kopīgu kodu nav, bet paveicas un 304 kodi pastāv gan vienā, gan otra datu tabulā. 
+
+
+Un risinu visādas pa ceļam radušās peoblēmas ar aminīgu formātiem.
+
+```{r join}
+# 1. Sagatavojam bakalaura rādītājus
+bak_studenti <- bak_clean %>%
+  group_by(CILVEKS_CKODS) %>%
+  summarise(
+    VSA_BAK = weighted.mean(ATZIME, BAK_KURSA_KREDITI, na.rm = TRUE),
+    BD_ATZIME = max(ifelse(grepl("Bakalaura darbs", BAK_KURSA_NOSAUKUMS, ignore.case = T), ATZIME, 0))
+  ) %>%
+  filter(BD_ATZIME > 0) # Redzu, ka daudziem bakalaura darba atzīme irr 0, tāpēc atlasu tikai tos, kam ir BD atzīme
+
+# 2. Sagatavojam maģistra rādītājus (mērķa mainīgais)
+mag_clean$MAG_KURSA_KREDITI <- as.numeric(mag_clean$MAG_KURSA_KREDITI)
+
+mag_studenti <- mag_clean %>%
+  group_by(CILVEKS_CKODS) %>%
+  summarise(
+    VSA_MAG = weighted.mean(ATZIME, MAG_KURSA_KREDITI, na.rm = TRUE)
+  )
+
+# 3. APVIENOJAM (Inner Join)
+bak_studenti$CILVEKS_CKODS <- as.character(bak_studenti$CILVEKS_CKODS) 
+mag_studenti$CILVEKS_CKODS <- as.character(mag_studenti$CILVEKS_CKODS) 
+
+stud_merge <- inner_join(bak_studenti, mag_studenti, by = "CILVEKS_CKODS")
+``` 
+
+Vaicam eksperimentu "Vecā" vs "Pasniedzēja" sistēma
+
+```{r}
+# Definējam grupas
+stud_merge <- stud_merge %>%
+  mutate(
+    Grupa = case_when(
+      BD_ATZIME >= 9 ~ "Vecā (BD 9-10)",
+      VSA_BAK >= 8 & BD_ATZIME >= 8 ~ "Pasniedzēja (VSA>=8 & BD>=8)",
+      TRUE ~ "Citi"
+    )
+  )
+
+# Salīdzinām vidējo sekmību maģistrantūrā
+salidzinajums <- stud_merge %>%
+  group_by(Grupa) %>%
+  summarise(
+    Studentu_Skaits = n(),
+    Vid_Atzime_Magistratura = mean(VSA_MAG),
+    Std_Novirze = sd(VSA_MAG)
+  )
+
+print(salidzinajums)
+
+
+
+```
+
+```{r kor}
+# Korelācijas koeficienti (Lekcija 1)
+cor_vsa <- cor(stud_merge$VSA_BAK, stud_merge$VSA_MAG)
+cor_bd <- cor(stud_merge$BD_ATZIME, stud_merge$VSA_MAG)
+
+print(paste("VSA korelācija ar Maģistra sekmēm:", round(cor_vsa, 3)))
+print(paste("BD korelācija ar Maģistra sekmēm:", round(cor_bd, 3)))
+
+# Regresijas modelis (Lekcija metodes1.pdf)
+modelis <- lm(VSA_MAG ~ VSA_BAK + BD_ATZIME, data = stud_merge)
+summary(modelis)
+```
+
+
+
+
+
