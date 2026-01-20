@@ -1,5 +1,5 @@
 ---
-title: "15_3_Studentu_atzimes"
+title: "15.3 Studentu atzīmes"
 author: "Jekaterīna Butkeviča"
 date: "`r Sys.Date()`"
 output: word_document
@@ -13,6 +13,8 @@ Es pats ar šo datu palīdzību pamatoju savu priekšlikumu turpmāk uzņemt ma�
 
 ## Dati
 
+Ielasu abas lapas kā atsevišķas datu tabulas — viena bakalaura studijām, otra — maģistrantūrai.
+
 ```{r dat}
 library(readxl)
 bak <- read_excel("studentu_sekmes2.xls", sheet = "sekmes_bak")
@@ -20,12 +22,12 @@ mag <- read_excel("studentu_sekmes2.xls", sheet = "sekmes_mag",  col_types = "te
 ```
 
 
+### Datu tīrīšana
 
-### Datu tirīšana
+Veicu datu tīrīšanu: izņēmu atzīmes “ieskaite”, jo tās nav skaitliskas, kā arī rindas ar trūkstošām atzīmēm, un pārvērtu pārējās atzīmes numeric formātā.
 
-```{r tir}
+```{r tir, warning=FALSE, message=FALSE}
 library(dplyr)
-# Pārvēršam atzīmes par skaitļiem (izmetot 'ieskaite' un neesošas atzīmes)
 bak_clean <- bak %>%
   mutate(ATZIME = as.numeric(as.character(BAK_ATZIME))) %>%
   filter(!is.na(ATZIME), ATZIME > 0)
@@ -35,93 +37,211 @@ mag_clean <- mag %>%
   filter(!is.na(ATZIME), ATZIME > 0)
 ```
 
-### Bakalaura studiju programmas studenti
 
-Pārbaudu vai studentu kodi sakrīt starp bakalaura un magistratūras studentiem.
+### Pirmā daļa – divas uzņemšanas stratēģijas
 
+Pārbaudīšu Jūsu ideju, ka studentu uzņemšana bez konkursa, ja viņu vidējā svērtā atzīme un bakalaura darba atzīme ir ≥8, ir prātīgāka nekā, ja atlase balstās tikai uz bakalaura darba atzīmi ≥9.
+
+Sākumā pārbaudu, vai studentu kodi sakrīt starp bakalaura un maģistrantūras studentiem.
 
 ```{r tets}
-# Iegūstam unikālos kodus no abām kopām
 length(bak_kodi <- unique(bak_clean$CILVEKS_CKODS))
 length(mag_kodi <- unique(mag_clean$CILVEKS_CKODS))
 
-# Atrodam kodus, kas ir abos sarakstos
 length(kopejie_kodi <- intersect(bak_kodi, mag_kodi))
 ```
 
-Uz acs man likas, ka kopīgu kodu nav, bet paveicas un 304 kodi pastāv gan vienā, gan otra datu tabulā. 
+Uz aci šķita, ka kopīgu kodu nav, bet paveicās — 304 kodi pastāv gan vienā, gan otrā datu tabulā.
 
+Tagad katram studentam aprēķinu bakalaura studiju rādītājus.
 
-Un risinu visādas pa ceļam radušās peoblēmas ar aminīgu formātiem.
-
-```{r join}
-# 1. Sagatavojam bakalaura rādītājus
+```{r bakrad}
 bak_studenti <- bak_clean %>%
   group_by(CILVEKS_CKODS) %>%
   summarise(
     VSA_BAK = weighted.mean(ATZIME, BAK_KURSA_KREDITI, na.rm = TRUE),
     BD_ATZIME = max(ifelse(grepl("Bakalaura darbs", BAK_KURSA_NOSAUKUMS, ignore.case = T), ATZIME, 0))
   ) %>%
-  filter(BD_ATZIME > 0) # Redzu, ka daudziem bakalaura darba atzīme irr 0, tāpēc atlasu tikai tos, kam ir BD atzīme
+  filter(BD_ATZIME > 0) # Redzu, ka daudziem bakalaura darba atzīme ir 0, tāpēc atlasu tikai tos, kam ir BD atzīme.
+```
 
-# 2. Sagatavojam maģistra rādītājus (mērķa mainīgais)
+Tagad sagatavoju mērķa mainīgo — maģistrantūras vidējo svērto atzīmi. Tāpat risinu dažādas ceļā radušās problēmas ar mainīgo formātiem.
+
+```{r magmerk}
 mag_clean$MAG_KURSA_KREDITI <- as.numeric(mag_clean$MAG_KURSA_KREDITI)
-
 mag_studenti <- mag_clean %>%
   group_by(CILVEKS_CKODS) %>%
   summarise(
     VSA_MAG = weighted.mean(ATZIME, MAG_KURSA_KREDITI, na.rm = TRUE)
   )
+```
 
-# 3. APVIENOJAM (Inner Join)
+Apvienoju datu tabulas.
+
+```{r join}
 bak_studenti$CILVEKS_CKODS <- as.character(bak_studenti$CILVEKS_CKODS) 
 mag_studenti$CILVEKS_CKODS <- as.character(mag_studenti$CILVEKS_CKODS) 
 
 stud_merge <- inner_join(bak_studenti, mag_studenti, by = "CILVEKS_CKODS")
 ``` 
 
-Vaicam eksperimentu "Vecā" vs "Pasniedzēja" sistēma
+Tagad veicu eksperimentu – salīdzinu veco un jauno uzņemšanas sistēmu. Definēju grupas un salīdzinu vidējo sekmību maģistrantūrā.
 
 ```{r}
-# Definējam grupas
-stud_merge <- stud_merge %>%
-  mutate(
-    Grupa = case_when(
-      BD_ATZIME >= 9 ~ "Vecā (BD 9-10)",
-      VSA_BAK >= 8 & BD_ATZIME >= 8 ~ "Pasniedzēja (VSA>=8 & BD>=8)",
-      TRUE ~ "Citi"
-    )
-  )
+grupa_BD9 <- stud_merge %>% 
+  filter(BD_ATZIME >= 9) %>% 
+  mutate(Metode = "BD9")
 
-# Salīdzinām vidējo sekmību maģistrantūrā
-salidzinajums <- stud_merge %>%
-  group_by(Grupa) %>%
+grupa_VSA8BD8 <- stud_merge %>% 
+  filter(VSA_BAK >= 8 & BD_ATZIME >= 8) %>% 
+  mutate(Metode = "VSA8_BD8")
+
+salidzinajums_metodes <- bind_rows(grupa_BD9, grupa_VSA8BD8)
+
+statistika <- salidzinajums_metodes %>%
+  group_by(Metode) %>%
   summarise(
-    Studentu_Skaits = n(),
-    Vid_Atzime_Magistratura = mean(VSA_MAG),
-    Std_Novirze = sd(VSA_MAG)
+    Skaits = n(),
+    Vid_Mag_VSA = mean(VSA_MAG),
+    Std_Novirze = sd(VSA_MAG),
+    Minimala_Atzime = min(VSA_MAG)
   )
 
-print(salidzinajums)
+print(statistika)
+```
+Šķiet, ka starpība nav īpaši izteikta – tikai 0,253 balles. Tomēr kopumā Jūsu pieejai ir augstāka vidējā atzīme un mazāka standartnovirze – rezultāti ir augstāki un prognozējamāki.
 
+Apskatīsim kārbu diagrammu.
 
-
+```{r}
+library(ggplot2)
+library(cowplot)
+ggplot(salidzinajums_metodes, aes(x = Metode, y = VSA_MAG, fill = Metode)) +
+  geom_boxplot(alpha = 0.7) +
+  geom_jitter(width = 0.1, alpha = 0.4) + 
+  labs(y = "VSA Maģistratūrā") +
+  theme_half_open()
 ```
 
+Nu jā, starp grupām maģistrantūras VSA sadalījums atšķiras — ja students bakalaurā bija pietiekami labs, lai pievērstu uzmanību visiem kursiem, tad maģistrantūrā viņš uzrāda līdzīgu sniegumu.
+
+
+Apskatu vizuāli, vai pastāv lineāra saistība.
+
+```{r atteli, warning=FALSE, message=FALSE}
+ggplot(stud_merge, aes(x = VSA_BAK, y = VSA_MAG)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(x = "VSA_BAK", y = "VSA_MAG",
+       title = "VSA_MAG ~ VSA_BAK")
+
+ggplot(stud_merge, aes(x = BD_ATZIME, y = VSA_MAG)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE) +
+  labs(x = "BD_ATZIME", y = "VSA_MAG",
+       title = "VSA_MAG ~ BD_ATZIME")
+```
+
+Lineārā saistība starp mainīgajiem ir diezgan skaidra, īpašu specifisku efektu nav. 
+
+Tālāk veicu mainīgo normalitātes pārbaudi.
+
+
+```{r isnorm}
+# VSA_BAK
+hist(stud_merge$VSA_BAK, main = "VSA_BAK histogramma", xlab = "VSA_BAK", breaks = 30)
+shapiro.test(stud_merge$VSA_BAK) # Nav sadalīta normāli
+# BD_ATZIME - diskrēta
+# VSA_MAG
+hist(stud_merge$VSA_MAG, main = "VSA_MAG histogramma", xlab = "VSA_MAG", breaks = 30)
+shapiro.test(stud_merge$VSA_MAG) # Nav sadalīta normāli
+```
+
+Izmantoju Spīrmena korelāciju, jo bakalaura darba atzīme ir diskrēta, un arī pārējie mainīgie neatbilst normālam sadalījumam.
+
 ```{r kor}
-# Korelācijas koeficienti (Lekcija 1)
-cor_vsa <- cor(stud_merge$VSA_BAK, stud_merge$VSA_MAG)
-cor_bd <- cor(stud_merge$BD_ATZIME, stud_merge$VSA_MAG)
+cor_vsa <- cor(stud_merge$VSA_BAK, stud_merge$VSA_MAG, method = "spearman")
+cor_bd <- cor(stud_merge$BD_ATZIME, stud_merge$VSA_MAG, method = "spearman")
 
 print(paste("VSA korelācija ar Maģistra sekmēm:", round(cor_vsa, 3)))
 print(paste("BD korelācija ar Maģistra sekmēm:", round(cor_bd, 3)))
+```
 
-# Regresijas modelis (Lekcija metodes1.pdf)
+Bakalaura VSA ir daudz spēcīgāk saistīta ar maģistrantūras sekmēm nekā Bakalaura darba atzīme. Jūs teicāt, ka 0,69 nav stipra korelācija. Man, strādājot tikai ar dabas datiem, šķiet, ka tā ir ļoti augsta korelācija. Katrā gadījumā bakalaura VSA joprojām rāda augstāku saistību nekā BD.
+
+Veidoju daudzfaktoru regresijas modeli. Ilgi domāju, kā to izdarīt pareizāk, jo, ja salīdzinātu tieši atlases sistēmas, tad modelim būtu jābūt lm(VSA_MAG ~ Metode). Tomēr pētījums ir retrospektīvs, un daži studenti iekļūst gan vienā, gan otrā uzņemšanas grupā. Tas nav statistiski korekti, jo lineārās regresijas pieņēmums par novērojumu neatkarīgumu vairs netiek ievērots, un koeficienti, p-vērtības un R² var būt maldinoši.
+
+Vienlaikus arī vienas metodes prioritātes piešķiršana nav pareiza, jo tā veido mākslīgu novirzi. Tāpēc es izvēlējos nesalīdzināt tieši uzņemšanas metodes, bet izmantot bakalaura VSA un bakalaura darba atzīmi kā regresorus, jo faktiski metode ir tikai slieksnis, lai izvēlētos studentus ar noteiktiem faktoriem. Šādi mēs varam pārbaudīt pašus faktorus, izmantojot datu tabulu bez dublikātiem.
+
+Es pieļauju, ka arī Jūsu metodē fokuss ir uz bakalaura VSA, savukārt bakalaura darba atzīmei tiek piešķirta vairāk kontroles šāviena loma. 
+
+```{r regr}
 modelis <- lm(VSA_MAG ~ VSA_BAK + BD_ATZIME, data = stud_merge)
-summary(modelis)
 ```
 
 
+Veicu modeļa diagnostiku.
+
+```{r mod_daig}
+plot(modelis)
+acf(residuals(modelis),lag.max = 28) 
+```
+
+Nav ideāli, bet, salīdzinot ar bioloģiskajiem datiem, varētu teikt, ka modelis ir ļoti labs. Autokorelācija nav novērota. Var droši veikt interpretāciju.
+
+```{r interp}
+summary(modelis)
+```
+
+Modelis kopumā ir statistiski nozīmīgs (p-vērtība < 0,0001). Saskaņā ar modeļa rezultātiem aptuveni 41% maģistra atzīmju variācijas tiek izskaidrota ar bakalaura vidējo svērto atzīmi un Bakalaura darba atzīmi (R² = 0.4084). Tomēr bakalaura darba atzīme nav statistiski nozīmīgs faktors maģistrantūras vidējās svērtās atzīmes prognozēšanai. Galvenais regressors ir bakalaura studiju vidējā svērtā atzīme.
+
+**Secinājums**: Studentu sniegums maģistrantūrā ir ciešāk saistīts ar bakalaura studiju vidējo svērto atzīmi (kas atspoguļo ilgtermiņa centienus) nekā ar Bakalaura darba atzīmi (punktveida novērtējumu).
 
 
+## Otra daļa – ne visi kursi ir vienādi.
 
+Man kļuva interesanti, vai daži bakalaura studiju kursi prognozē studenta sniegumu maģistrantūrā labāk nekā citi. Tāpēc nolēmu veikt sekojošu eksperimentu.
+
+Pirmkārt, es pārskatu, cik daudz unikālu kursu bija bakalaura programmā.
+
+```{r kursi}
+length(unique(bak$BAK_KURSA_NOSAUKUMS))
+```
+
+Izrādās, ka unikālo kursu ir pārāk daudz, un nav jēgas analizēt tos, kurus apguvuši tikai daži studenti (piemēram, C daļu). Tāpēc sakārtoju kursus pēc to apmeklējušo studentu skaita un atlasu pirmās 50.
+
+```{r kusi2}
+top_kursi <- bak_clean %>%
+  group_by(BAK_KURSA_NOSAUKUMS) %>%
+  summarise(studentu_skaits = n()) %>%
+  arrange(desc(studentu_skaits)) %>%
+  head(50) 
+```
+
+Veicu Spīrmena korelācijas analīzi: izveidoju plašu tabulu ar katra studenta apgūtajiem kursiem, pievienoju vidējo svērto maģistrantūras atzīmi un aprēķināju Spīrmena korelācijas koeficientu.
+
+```{r}
+library(tidyr)
+popularie_nosaukumi <- top_kursi$BAK_KURSA_NOSAUKUMS
+
+kursu_plata_tabula <- bak_clean %>%
+  filter(BAK_KURSA_NOSAUKUMS %in% popularie_nosaukumi) %>%
+  group_by(CILVEKS_CKODS, BAK_KURSA_NOSAUKUMS) %>%
+  summarise(Atzime = max(ATZIME), .groups = 'drop') %>%
+  pivot_wider(names_from = BAK_KURSA_NOSAUKUMS, values_from = Atzime)
+
+kursu_plata_tabula$CILVEKS_CKODS <- as.character(kursu_plata_tabula$CILVEKS_CKODS)
+
+analize <- inner_join(kursu_plata_tabula, mag_studenti, by = "CILVEKS_CKODS")
+
+korelacijas <- sapply(analize %>% select(-CILVEKS_CKODS, -VSA_MAG), function(x) {
+  cor(x, analize$VSA_MAG, use = "complete.obs", method = "spearman")
+})
+sort(korelacijas, decreasing = TRUE)
+```
+
+Vislielākā korelācija ar maģistrantūras sekmēm novērota fundamentālajos datorzinātņu kursos, piemēram, Programmēšanas valodās (r = 0.65) un Datoru arhitektūrā (r = 0.58). Tas liecina, ka labas sekmes šajos priekšmetos ir saistītas ar augstākiem rezultātiem maģistrantūrā. Interesanti, ka Bakalaura darba atzīme (r = 0.45) ir mazāk saistīta ar maģistrantūras sekmēm nekā fundamentālie kursi. Savukārt vispārizglītojošie kursi, piemēram, Veselības un sporta izglītība (r = 0.13) un Civilā aizsardzība (r = 0.06), neuzrāda izteiktu saistību ar maģistrantūras rezultātiem.
+
+**Secinājums**: Izstrādājot studentu uzņemšanas sistēmu, būtu jāpievērš lielāka uzmanība tieši fundamentālo kursu (Programmēšana, Matemātika) vērtējumiem, nevis tikai bakalaura darba atzīmei vai vispārējam vidējam rādītājam, kurā ietilpst maznozīmīgi kursi.
+
+*P.S.* Tas arī nav kompensējams ar pēc kredītpunktu skaita svērto vidējo atzīmi, jo, piemēram, nozīmīgs kurss "Formālās specifikācijas [*]" (r =  0.55) ir tikpat “smags” kredītpunktu ziņā kā kurss "Veselības un sporta izglītība" (r = 0.13).
