@@ -1,0 +1,351 @@
+---
+title: "15.4. Eiropas ilgtspējīga attīstība"
+author: "Jekaterīna Butkeviča"
+date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
+output: word_document
+---
+
+Vispārējie R kodu bloku iestatījumi:
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(readxl)
+library(Rtsne)
+library(janitor)
+library(dplyr)
+library(umap)
+library(foreign)
+library(kernlab) # KPCA
+library(reticulate) # TriMap, PaCMAP
+```
+
+
+## Uzdevums
+1. Izpētiet piedāvātos datus, izmantojot pēc iespējas vairāk no datizraces kursā apgūtajām metodēm.
+
+2.  Kolonā BA ir dots t.s. Advanced Human Development Index (AHDI, detaļas - publikācijā). Viens no Jūsu pētījuma mērķiem varētu būtu pēc iespējas mazākas raksturlielumu apakškopas atrašana, no kuras katrai valstij AHDI varētu pietiekami precīzi aprēķināt.  
+
+
+## Dati
+
+Datu kopa ir izveidota, lai atbalstītu matemātiskā modeļa izstrādi pilsētu ilgtspējīgas attīstības mērīšanai, kas atbilst ANO noteiktajiem standartiem. Dati ir strukturēti divās galvenajās tabulās (lapās):
+
+1. lapa satur specifiskus ilgtspējīgas attīstības mērķu (Sustainable Development Goals - SDG) indikatori. Sāja lapā dati ir apkopoti par 27 ES valstim.
+
+2. lapa satur aprēķinātos globālos indeksus. Tā sastāv no 5 kolonnām (Valsts, HDI 2020, EPI 2020 un aprēķinātais AHDI). Šaja sarakstā ir iekļāuti arī valsti ārpus ES
+
+```{r sheet1}
+ind_data <- read_excel("Datizracei.xlsx", sheet = "Sheet1")
+# Notīrām: izmetam rindu "Gads", noņemam tukšas kolonnas un pārsaucam pirmo kolonnu
+ind_clean <- ind_data %>%
+  # Izmantojam %in%, lai ērti noņemtu abas liekās informācijas rindas
+  filter(!Indikators %in% c("Gads", "Avots")) %>%
+  rename(Country = Indikators) %>%
+  # Drošības pēc atlasām tikai tās kolonnas, kurām būtu jābūt datiem
+  select(1:50)
+
+
+# 2. Ielādējam AHDI no Sheet2
+# Pēc faila struktūras AHDI parasti ir 5. kolonna
+ahdi_data <- read_excel("Datizracei.xlsx", sheet = "Sheet2")
+
+ahdi_clean <- ahdi_data %>%
+  select(Country = 1, AHDI = 5) %>%
+  filter(!is.na(AHDI))
+
+# 3. Apvienojam datus vienā tabulā pēc valsts nosaukuma
+full_df <- inner_join(ind_clean, ahdi_clean, by = "Country")
+
+full_df$Country <- as.factor(full_df$Country)
+
+write.arff(full_df, file = "full_df.arff")
+
+
+# Sagatavojam skaitlisko matricu analīzei
+# Konvertējam uz numeric, ja nepieciešams, un iestatām valstis kā rindu nosaukumus
+row_names <- full_df$Country
+analysis_df <- full_df %>%
+  select(-Country) %>%
+  mutate(across(everything(), as.numeric)) %>%
+  as.data.frame()
+
+rownames(analysis_df) <- row_names
+analysis_df <- na.omit(analysis_df)
+
+# Atsevišķi mērķa mainīgais un atribūti
+X <- as.matrix(analysis_df %>% select(-AHDI))
+X_scaled <- scale(X) # Standartizācija ir obligāta!
+ahdi_values <- analysis_df$AHDI
+```
+
+
+## WEKA - Indeksa prognozēšana
+
+
+Galvēna eksperimenta idēja: Tā kā tev ir tikai 27 objekti, mēs nevaram izmantot visus 50 atribūtus. ########
+
+
+Ielasu full_df tabulu Wekā. Noņemu valsts kolonnu. Cilnē "Select attributes" izvēlos Attribute Evaluator `CfsSubsetEval` ar noklusējuma iestatījuemiem un kā search method izvēlos `BestFirst`. Kā mērķa mainīgo izvēlos ANDI. Un kā Attribte Selection mode izmantoju krustenisko vvalidāciju ar 10 foldiem (seed 1).
+
+Atribūtu selekcijas idēja ir, ka labs atribūtu kopums ir tāds, kurā atribūti cieši korelē ar mērķa mainīgo, bet vāji korelē savā starpā. Algoritms piesķir punktus karai katrai iespējamajai atribūtu apakškopai. Tā kā ir izmantota krusteniska validācija rezultatis ir paradīta nevis vien kopa, bet to cik bieži konkrētais atribūts tika izvēlēts 10 dažādos piegājienos.
+
+```
+=== Attribute selection 10 fold cross-validation seed: 1 ===
+
+number of folds (%)  attribute
+           3( 30 %)     1 G3.1
+           0(  0 %)     2 G3.2
+           1( 10 %)     3 G3.3
+           0(  0 %)     4 G3.4
+           2( 20 %)     5 G3.5
+           8( 80 %)     6 G3.6
+          10(100 %)     7 G3.7
+           1( 10 %)     8 G4.1
+           2( 20 %)     9 G4.2
+           0(  0 %)    10 G4.3
+           0(  0 %)    11 G4.4
+           1( 10 %)    12 G4.5
+           0(  0 %)    13 G5.1
+           1( 10 %)    14 G5.2
+           0(  0 %)    15 G5.3
+          10(100 %)    16 G5.4
+           0(  0 %)    17 G5.5
+           0(  0 %)    18 G5.6
+           0(  0 %)    19 G5.7
+           1( 10 %)    20 G6.1
+           1( 10 %)    21 G6.2
+           0(  0 %)    22 G6.3
+           0(  0 %)    23 G7.1
+           9( 90 %)    24 G7.2
+           0(  0 %)    25 G8.1
+           1( 10 %)    26 G8.2
+           0(  0 %)    27 G8.3
+          10(100 %)    28 G9.1
+           9( 90 %)    29 G9.2
+           0(  0 %)    30 G9.3
+           0(  0 %)    31 G9.4
+           2( 20 %)    32 G9.6
+           0(  0 %)    33 G9.7
+           9( 90 %)    34 G9.8
+           0(  0 %)    35 G9.9
+           7( 70 %)    36 G9.10
+           0(  0 %)    37 G9.11
+           0(  0 %)    38 G11.1
+           1( 10 %)    39 G11.2
+           0(  0 %)    40 G11.3
+          10(100 %)    41 G11.4
+           7( 70 %)    42 G12.1
+           1( 10 %)    43 G12.2
+           0(  0 %)    44 G13.1
+           0(  0 %)    45 G13.2
+           0(  0 %)    46 G15.1
+           1( 10 %)    47 G16.1
+          10(100 %)    48 G16.2
+           0(  0 %)    49 G17.1
+```
+**Rezultāts**:
+Atribūti, kas ir izveleti 90%-100% gadījumu ir visuzticamāki AHDI prognozetāji. Man sabnāca, ka tie ir: G3.7 (Novēršamā mirstība, uz 100 000 iedzīvotāju vecumā līdz 75 gadiem), G5.4 (Atšķirība labas vai ļoti labas pašvērtētās veselības īpatsvarā, vīrieši – sievietes, iedzīvotāji vecumā 16 gadi un vairāk, procentu punkti), G7.2 (Iedzīvotāju īpatsvars, kuri nevar pienācīgi apsildīt mājokli pēc nabadzības statusa, %), G9.1 (Nodarbinātība augsto un vidēji augsto tehnoloģiju ražošanā un zināšanu intensīvās pakalpojumu nozarēs; % no kopējās nodarbinātības), G9.2 (Uzņēmumu īpatsvars, kuriem ir ERP programmatūra informācijas apmaiņai starp dažādām funkcijām (10+ darbinieki), G9.8 (MVU īpatsvars ar iekšējām inovāciju aktivitātēm (EIS), G11.4 (raksta par šo informācijas nav) un G16.2 (Tiesu sistēmas uztvertā neatkarība, % iedzīvotāju, kas to vērtē kā ļoti vai diezgan labu). Indekatoru aprakstu man pārtulkoja ChatGPT. Pieliku beigas arī pilno sarakstu.
+
+
+Tagad cilnē "Preprocess", izmantojot filtru unsupervised.attribute.Remove izņemu kolonnas, netika pārskaitīti iepriekšeja rindkopā, t.i. 1-6, 8-15, 17-23, 25-27, 30-33, 35-40, 42-47, 49 (kolonnu numuri). Atstāju arī AHDI kolonnu.
+
+
+Cilnē "Classify" izvēlos algoritmu `functions.LinearRegression` ar noklusejuma iestatījuemiem.
+
+
+```
+=== Run information ===
+
+Scheme:       weka.classifiers.functions.LinearRegression -S 0 -R 1.0E-8 -num-decimal-places 4
+Relation:     full_df-weka.filters.unsupervised.attribute.Remove-R1-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-R1-6,8-15,17-23,25-27,30-33,35-40,42-47,49
+Instances:    27
+Attributes:   9
+              G3.7
+              G5.4
+              G7.2
+              G9.1
+              G9.2
+              G9.8
+              G11.4
+              G16.2
+              AHDI
+Test mode:    10-fold cross-validation
+
+=== Classifier model (full training set) ===
+
+
+Linear Regression Model
+
+AHDI =
+
+     -0.0001 * G3.7 +
+     -0.0021 * G7.2 +
+      0.0014 * G9.1 +
+      0.0011 * G9.2 +
+      0.001  * G16.2 +
+      0.7519
+
+Time taken to build model: 0.04 seconds
+
+=== Cross-validation ===
+=== Summary ===
+
+Correlation coefficient                  0.9263
+Mean absolute error                      0.016 
+Root mean squared error                  0.0204
+Relative absolute error                 33.0879 %
+Root relative squared error             36.7286 %
+Total Number of Instances               27     
+
+```
+**Rezultāts**: Izmantojot lineāru regresiju tika iegūts vienādojums no modelī iekļautiem mainīgiem. Vienādojuma netika iekļauti visi mainīgie – indikātori G5.4, G9.8, G11.4 tika atstati malā, jo WEKAS algoritms LinearRegression automātiski veic papildus atribūtu atlasi (parasti izmantojot M5 metodi), lai novērstu multikolinearitāti. 
+
+Iegūtais korelācijas koeficients ir ļoti augsts ~ 0,93, kas nozīme, ka starp izvēlētajiem ilgtspējīgas attīstības indikatoriem un AHDI eksistē ļoti cieša lineāra saistība. Kāpīnot kvadrātā sanāk, ka modelis spēj izskaidrot aptuveni 85,75% ) no AHDI indeksa vērtību variācijas starp ES valstīm. MAE ir maza – 0.016 un RRSE ir 36.7%, kas nav maz, bet ņeemot vēra mazu izlasi, amnnuprāt ir OK. 
+
+Saskaņā ar vienādojuma koeficientiem indikārtoriem G9.1 (Augstās tehnoloģijas), G9.2 (ERP programmatūra) un G16.2 (Tiesu sistēmas neatkarība) ir pozitīa ietekme uz AHDI indeksu– šie rādītāji palielina AHDI. Iespējama interpretācija ir, ka, jo modernāka ir valsts rūpniecība un digitālā vide, jo augstāks ir cilvēka attīstības līmenis. 
+
+Savukārt indikātoriem G3.7 (Novēršamā mirstība) un G7.2 (Nespēja apsildīt mājokli) ir negatīva ietekme uz AHDI indeksu – pieaugot enerģētiskajai nabadzībai un jo vairāk cilvēku mirst no novēršamām slimībām (jo vājāka ir veselības sistēma) - vairāk samazinās AHDI indekss.
+
+Vienīgais, cik es saprotu WEKA automatiski neparbauda lineāras regressijas priekšnosacījumus. Pakonsultejos ar Gemini, viņa teica "WEKA ir datizraces (data mining) rīks, un tās filozofija atšķiras no klasiskās statistikas programmatūras (piemēram, SPSS vai R lm funkcijas). Tā koncentrējas uz prognozēšanas precizitāti, nevis uz teorētisko modeļa "pareizību"." Nu labi, ar sievieti, kas Tev palīdz labāk nestrideties, lai ir kā viņa saka.
+
+
+
+
+Tagad gribu salidzināt rezultatu ar meta-algoritmiem. Cilnē "Classify" izvēlos meta-algoritmu `Bagging`. Kā bāzes algoritmu izvēlos functions.LinearRegression un numIterations = 10. Pārbaudes režims - krusteniska validācija.
+
+```
+=== Cross-validation ===
+=== Summary ===
+
+Correlation coefficient                  0.9364
+Mean absolute error                      0.0142
+Root mean squared error                  0.0188
+Relative absolute error                 29.2903 %
+Root relative squared error             33.7816 %
+Total Number of Instances               27     
+
+```
+
+Izmantojot meta-algoritmu `Bagging` korelācijas koeficients piauga no 0.9263 uz 0.9364 un MAE samazinājas līdz 0.0142.
+
+
+
+Manuprāt iegūtie rezultati izpilda mērķi atrast pēc iespējas mazāku raksturlielumu apakškopu, no kuras katrai valstij AHDI varētu pietiekami precīzi aprēķināt. Bet bija twikts izmantot pēc iespējas vairāk kursa apskatīto algorritmu, bet es pielietoju tos, kuri kursa bija konceptuāli pieminēti, bet nefigurēja mājas darbos, tādēļ ################.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Indikātoru atšifrējums angliski un latviski
+
+*G3 – Veselība*
+G3.1 Share of people with good or very good perceived health, % of population aged 16 or over – Labas vai ļoti labas pašvērtētās veselības īpatsvars, % iedzīvotāju vecumā 16 gadi un vairāk (Eurostat)
+G3.2 Obesity rate by body mass index (BMI), % of population aged 18 or over – Aptaukošanās līmenis pēc ķermeņa masas indeksa (ĶMI), % iedzīvotāju vecumā 18 gadi un vairāk (Eurostat)
+G3.3 Self-reported unmet needs for medical examination and care, % of population aged 16 or over – Pašnovērtētas neatbilstošas medicīniskās aprūpes vajadzības, % iedzīvotāju vecumā 16 gadi un vairāk (Eurostat)
+G3.4 Number of generalist medical practitioners, per 100 000 population – Vispārējās prakses ārstniecības darbinieku skaits uz 100 000 iedzīvotāju (Eurostat)
+G3.5 Neonatal mortality rate, per 1000 live births – Neonatālā mirstība, uz 1000 dzīvi dzimušiem (WB)
+G3.6 Under-five mortality rate, per 1000 live births – Mirstība līdz 5 gadu vecumam, uz 1000 dzīvi dzimušiem (WB)
+G3.7 Avoidable mortality, per 100 000 population below 75 years – Novēršamā mirstība, uz 100 000 iedzīvotāju vecumā līdz 75 gadiem (Eurostat)
+
+*G4 – Izglītība*
+G4.1 Early leavers from education and training, % of population aged 18 to 24 – Agrīnie izglītības un apmācības pārtrauktāji, % iedzīvotāju vecumā 18–24 gadi (Eurostat)
+G4.2 Share of top performers in at least one subject (level 5 or 6) – Labākie sasniegumi vismaz vienā mācību priekšmetā (līmenis 5 vai 6) (OECD)
+G4.3 Share of population with tertiary education (levels 5-8 ISCED 2011) from 15 to 64 years – Augstākās izglītības ieguvēju īpatsvars (līmeņi 5–8, ISCED 2011), vecumā 15–64 gadi (Eurostat)
+G4.4 Adult participation rate in education and training (last 12 months), from 25 to 64 years – Pieaugušo piedalīšanās izglītībā un apmācībā (pēdējo 12 mēnešu laikā), vecumā 25–64 gadi (Eurostat)
+G4.5 Graduates in tertiary education, in science, math., computing, engineering, manufacturing, construction per 1000 of population aged 20-29 – Augstākās izglītības absolventi zinātnē, matemātikā, informātikā, inženierzinātnēs, ražošanā, būvniecībā uz 1000 iedzīvotājiem vecumā 20–29 gadi (Eurostat)
+
+*G5 – Dzimumu līdztiesība*
+G5.1 Gender pay gap in unadjusted form, % of average gross hourly earnings of men – Dzimumu atalgojuma plaisa neizlīdzinātā formā, % vidējās bruto stundas algas vīriešiem (Eurostat)
+G5.2 Gap in higher educational attainment level, females - males, aged 15-64, percentage points – Atšķirība augstākās izglītības līmenī, sievietes – vīrieši, vecumā 15–64 gadi, procentu punkti (Eurostat)
+G5.3 Gender employment gap, males - females, aged 15-64, percentage points – Dzimumu nodarbinātības atšķirība, vīrieši – sievietes, vecumā 15–64 gadi, procentu punkti (Eurostat)
+G5.4 People gap with good or very good perceived health, males - females, population aged 16 or over, percentage points – Atšķirība labas vai ļoti labas pašvērtētās veselības īpatsvarā, vīrieši – sievietes, iedzīvotāji vecumā 16 gadi un vairāk, procentu punkti (Eurostat)
+G5.5 Seats held by women in national parliament (%) – Sieviešu amatu īpatsvars valsts parlamentā (%) (Eurostat)
+G5.6 Percentage of women among elected local level representatives – Sieviešu īpatsvars starp ievēlētajiem vietējā līmeņa pārstāvjiem (CEMR)
+G5.7 People gap /males-females/ with at least basic digital skills, 16-74 years old – Atšķirība iedzīvotāju digitālo pamatprasmju līmenī, vīrieši – sievietes, vecumā 16–74 gadi (Eurostat)
+
+*G6 – Mājsaimniecības aprīkojums un pakalpojumi*
+G6.1 Population having neither a bath, nor a shower in their dwelling, % of population – Iedzīvotājiem, kuriem mājoklī nav ne vanna, ne duša, % iedzīvotāju (Eurostat)
+G6.2 Population not having indoor flushing toilet for the sole use, % of population – Iedzīvotājiem, kuriem nav privātas iekšējās tualetes ar skalošanu, % iedzīvotāju (Eurostat)
+G6.3 Population connected to at least secondary wastewater treatment, % – Iedzīvotāji, kuri pieslēgti vismaz sekundārā notekūdeņu attīrīšanai, % (Eurostat)
+
+*G7 – Enerģija un siltums*
+G7.1 Share of renewable energy in heating and cooling – Atjaunojamās enerģijas īpatsvars siltumapgādē un dzesēšanā (Eurostat)
+G7.2 Share of population unable to keep home adequately warm by poverty status, % – Iedzīvotāju īpatsvars, kuri nevar pienācīgi apsildīt mājokli pēc nabadzības statusa, % (Eurostat)
+
+*G8 – Nodarbinātība*
+G8.1 Employment rate, population from 20 to 64 years – Nodarbinātības līmenis, iedzīvotāji vecumā 20–64 gadi (Eurostat)
+G8.2 Newly employed (percentage of people in current job for 12 months or less, in total employment), from 15 to 64 years – Jaunievēlētie darbinieki (personas, kuras esošajā darbā strādā 12 mēnešus vai mazāk, % no kopējās nodarbinātības), vecumā 15–64 gadi (Eurostat)
+G8.3 Long-term unemployment rate, % of active population from 15 to 74 years – Ilgtermiņa bezdarba līmenis, % no aktīvās iedzīvotāju grupas vecumā 15–74 gadi (Eurostat)
+
+*G9 – Inovācijas un uzņēmējdarbība*
+
+- G9.1 Employment in high- and medium-high technology manufacturing and knowledge-intensive services; % of total employment – Nodarbinātība augsto un vidēji augsto tehnoloģiju ražošanā un zināšanu intensīvās pakalpojumu nozarēs; % no kopējās nodarbinātības (Eurostat)
+- G9.2 Percentage of enterprises who have ERP software package to share information between different functional areas (10+ employees) – Uzņēmumu īpatsvars, kuriem ir ERP programmatūra informācijas apmaiņai starp dažādām funkcijām (10+ darbinieki) (Eurostat)
+- G9.3 Percentage of the gross value added by industry (B – E, NACE Rev.2) – Nozares (B–E, NACE Rev.2) radītās pievienotās vērtības īpatsvars (Eurostat)
+- G9.4 Percentage of enterprises (10+ employees) having a fast (> 30 Mbit/sec) fixed broadband connection – Uzņēmumu (10+ darbinieki) īpatsvars ar ātru (>30 Mbit/s) fiksēto platjoslas savienojumu (DAS)
+- G9.5 Percentage of enterprises that provided any type of training to develop ICT related skills of their personnel – Uzņēmumu īpatsvars, kas nodrošināja jebkādas apmācības darbinieku IT prasmju attīstībai (EIS)
+- G9.6 Percentage of SMEs who introduced at least one product innovation or process innovation either new to the enterprise or new to their market – MVU īpatsvars, kas ieviesa vismaz vienu produktu vai procesa inovāciju, kas jauna uzņēmumam vai tirgum (EIS)
+- G9.7 Percentage of SMEs who introduced at least one new organisational innovation or marketing innovation – MVU īpatsvars, kas ieviesa vismaz vienu jaunu organizatorisko vai mārketinga inovāciju (EIS)
+- G9.8 Percentage of SMEs with in-house innovation activities – MVU īpatsvars ar iekšējām inovāciju aktivitātēm (EIS)
+- G9.9 Total innovation expenditure as percentage of total turnover of enterprises, excluding intramural and extramural R&D expenditures – Kopējie izdevumi inovācijām kā % no uzņēmumu kopējā apgrozījuma, izņemot iekšējos un ārējos pētniecības un attīstības izdevumus (EIS)
+- G9.10 Percentage of SMEs with innovation co-operation activities – MVU īpatsvars ar sadarbības inovāciju aktivitātēm (EIS)
+
+*G11 – Mājsaimniecību dzīves apstākļi*
+- G11.1 Population living in a dwelling with a leaking roof, damp walls, floors or foundation or rot in window frames of floor by poverty status, % of population – Iedzīvotāji, kas dzīvo mājoklī ar noplūdušu jumtu, mitriem mūriem, grīdām vai pamatiem vai sapuvušiem logu rāmjiem, sadalot pēc nabadzības statusa, % (Eurostat)
+- G11.2 Young people neither in employment nor in education and training, from 15 to 24 years, percentage – Jaunieši, kas nav nodarbināti un neapgūst izglītību vai apmācību, vecumā 15–24 gadi, % (Eurostat)
+- G11.3 Average number of rooms per person – Vidējais istabu skaits uz vienu personu (Eurostat)
+
+*G12 – Atkritumu pārstrāde*
+- G12.1 Recycling rate of municipal waste, % of generated – Pašvaldību atkritumu pārstrādes īpatsvars, % no saražotajiem atkritumiem (Eurostat)
+- G12.2 Recycling rate of e-waste, % – Elektroiekārtu atkritumu pārstrādes īpatsvars, % (Eurostat)
+
+*G13 – Vide un piesārņojums*
+- G13.1 Greenhouse gas emissions, tonnes per capita – Siltumnīcefekta gāzu emisijas, tonnas uz vienu iedzīvotāju (Eurostat)
+- G13.2 Pollution, grime or other environmental problems, % of households – Piesārņojums, netīrumi vai citi vides problēmas, % mājsaimniecību (Eurostat)
+
+*G15 – Meži*
+- G15.1 Share of forest area, % of total land area – Meža zemes īpatsvars, % no kopējās zemes platības (Eurostat)
+
+*G16 – Sabiedriskās pārvaldes uztvere un drošība*
+- G16.1 Individuals interacting online with public authorities in the last 12 months, % of total – Personas, kas pēdējo 12 mēnešu laikā sadarbojušās tiešsaistē ar valsts iestādēm, % no kopskaita (DAS)
+- G16.2 Perceived independence of the justice system, % of population perceived as very good or fairly good – Tiesu sistēmas uztvertā neatkarība, % iedzīvotāju, kas to vērtē kā ļoti vai diezgan labu (Eurobarometer)
+- G16.3 Crime, violence or vandalism in the area, % of households – Noziedzība, vardarbība vai vandālisms apkaimē, % mājsaimniecību (Eurostat)
+
+*G17 – Interneta savienojums*
+- G17.1 Households with fast (> 30 Mbit/sec) fixed broadband connection, % of total – Mājsaimniecības ar ātru (>30 Mbit/s) fiksēto platjoslas savienojumu, % no kopskaita (DAS)
+
+
+
+
+
+
+
+
+
+
+
+
