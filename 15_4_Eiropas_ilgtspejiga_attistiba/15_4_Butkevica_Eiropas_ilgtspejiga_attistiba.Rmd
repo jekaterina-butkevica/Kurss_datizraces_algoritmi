@@ -5,9 +5,9 @@ date: "`r format(Sys.Date(), '%Y. gads %d. %B')`"
 output: word_document
 ---
 
-Vispārējie R kodu bloku iestatījumi:
+Vispārējie R koda bloku iestatījumi:
 
-```{r setup}
+```{r setup, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(tidyverse)
 library(readxl)
@@ -21,6 +21,7 @@ library(reticulate) # TriMap, PaCMAP
 ```
 
 
+
 ## Uzdevums
 1. Izpētiet piedāvātos datus, izmantojot pēc iespējas vairāk no datizraces kursā apgūtajām metodēm.
 
@@ -29,41 +30,37 @@ library(reticulate) # TriMap, PaCMAP
 
 ## Dati
 
-Datu kopa ir izveidota, lai atbalstītu matemātiskā modeļa izstrādi pilsētu ilgtspējīgas attīstības mērīšanai, kas atbilst ANO noteiktajiem standartiem. Dati ir strukturēti divās galvenajās tabulās (lapās):
+Cik es sapratu, pēc pirmā acu uzmetiena – datu kopa ir izveidota, lai atbalstītu matemātiskā modeļa izstrādi pilsētu ilgtspējīgas attīstības mērīšanai, kas atbilst ANO noteiktajiem standartiem. Dati ir sadalīti divās galvenajās lapās:
 
-1. lapa satur specifiskus ilgtspējīgas attīstības mērķu (Sustainable Development Goals - SDG) indikatori. Sāja lapā dati ir apkopoti par 27 ES valstim.
+1. Pirmā lapa satur specifiskus ilgtspējīgas attīstības mērķu (Sustainable Development Goals – SDG) indikatorus. Šajā lapā dati ir apkopoti par 27 ES valstīm.
 
-2. lapa satur aprēķinātos globālos indeksus. Tā sastāv no 5 kolonnām (Valsts, HDI 2020, EPI 2020 un aprēķinātais AHDI). Šaja sarakstā ir iekļāuti arī valsti ārpus ES
+2. Otrā lapa satur aprēķinātos globālos indeksus. Tā sastāv no piecām kolonnām (Valsts, HDI 2020, EPI 2020 un aprēķinātais AHDI). Šajā sarakstā ir iekļautas arī valstis ārpus ES.
+
+Es nolasīju un attīrīju datus. Pirmajā tabulā izdzēsu liekās rindas (“gads” un “avots”), pārsaucu pirmo kolonnu un izņēmu AHDI indeksu, jo tas bija neērti izvietots. Tabulas apvienoju pēc valsts nosaukuma, tādējādi atgriežot AHDI indeksu. Pa ceļam saglabāju datu tabulu WEKA formātā.
 
 ```{r sheet1}
 ind_data <- read_excel("Datizracei.xlsx", sheet = "Sheet1")
-# Notīrām: izmetam rindu "Gads", noņemam tukšas kolonnas un pārsaucam pirmo kolonnu
 ind_clean <- ind_data %>%
-  # Izmantojam %in%, lai ērti noņemtu abas liekās informācijas rindas
   filter(!Indikators %in% c("Gads", "Avots")) %>%
   rename(Country = Indikators) %>%
-  # Drošības pēc atlasām tikai tās kolonnas, kurām būtu jābūt datiem
   select(1:50)
 
-
-# 2. Ielādējam AHDI no Sheet2
-# Pēc faila struktūras AHDI parasti ir 5. kolonna
 ahdi_data <- read_excel("Datizracei.xlsx", sheet = "Sheet2")
 
 ahdi_clean <- ahdi_data %>%
   select(Country = 1, AHDI = 5) %>%
   filter(!is.na(AHDI))
 
-# 3. Apvienojam datus vienā tabulā pēc valsts nosaukuma
 full_df <- inner_join(ind_clean, ahdi_clean, by = "Country")
-
 full_df$Country <- as.factor(full_df$Country)
 
 write.arff(full_df, file = "full_df.arff")
+```
 
 
-# Sagatavojam skaitlisko matricu analīzei
-# Konvertējam uz numeric, ja nepieciešams, un iestatām valstis kā rindu nosaukumus
+Tālāk sagatavoju skaitlisko matricu analīzei: konvertēju to uz numeric formātu, valsts kolonnu pārvēršu par rindu nosaukumiem, standartaizēju matricu, bet mērķa mainīgo saglabāju atsevišķā vektorā.
+
+```{r matrix}
 row_names <- full_df$Country
 analysis_df <- full_df %>%
   select(-Country) %>%
@@ -73,22 +70,17 @@ analysis_df <- full_df %>%
 rownames(analysis_df) <- row_names
 analysis_df <- na.omit(analysis_df)
 
-# Atsevišķi mērķa mainīgais un atribūti
 X <- as.matrix(analysis_df %>% select(-AHDI))
-X_scaled <- scale(X) # Standartizācija ir obligāta!
+X_scaled <- scale(X) 
 ahdi_values <- analysis_df$AHDI
 ```
 
 
-## WEKA - Indeksa prognozēšana
+## WEKA — indeksa prognozēšana
 
+Ielasu iepriekš sagatavoto tabulu Wekā, taču noņēmu kolonnu ar valsti. Cilnē "Select attributes" izvēlējos `Attribute Evaluator` `CfsSubsetEval` ar noklusējuma iestatījumiem, bet kā `Search Method` izmantoju `BestFirst`. Kā mērķa mainīgo izvēlējos `AHDI`, un `Attribute Selection Mode` iestatīju uz krustenisko validāciju ar 10 foldiem (seed = 1).
 
-Galvēna eksperimenta idēja: Tā kā tev ir tikai 27 objekti, mēs nevaram izmantot visus 50 atribūtus. ########
-
-
-Ielasu full_df tabulu Wekā. Noņemu valsts kolonnu. Cilnē "Select attributes" izvēlos Attribute Evaluator `CfsSubsetEval` ar noklusējuma iestatījuemiem un kā search method izvēlos `BestFirst`. Kā mērķa mainīgo izvēlos ANDI. Un kā Attribte Selection mode izmantoju krustenisko vvalidāciju ar 10 foldiem (seed 1).
-
-Atribūtu selekcijas idēja ir, ka labs atribūtu kopums ir tāds, kurā atribūti cieši korelē ar mērķa mainīgo, bet vāji korelē savā starpā. Algoritms piesķir punktus karai katrai iespējamajai atribūtu apakškopai. Tā kā ir izmantota krusteniska validācija rezultatis ir paradīta nevis vien kopa, bet to cik bieži konkrētais atribūts tika izvēlēts 10 dažādos piegājienos.
+Atribūtu selekcijas mērķis ir atrast tādu atribūtu kopu, kurā atribūti cieši korelē ar mērķa mainīgo, bet vāji korelē savā starpā. Tā kā izmantota krusteniskā validācija, rezultātā tiek parādīta nevis viena konkrēta atribūtu kopa, bet gan tas, cik bieži katrs atribūts tika izvēlēts 10 iterācijās.
 
 ```
 === Attribute selection 10 fold cross-validation seed: 1 ===
@@ -145,20 +137,25 @@ number of folds (%)  attribute
            0(  0 %)    49 G17.1
 ```
 **Rezultāts**:
-Atribūti, kas ir izveleti 90%-100% gadījumu ir visuzticamāki AHDI prognozetāji. Man sabnāca, ka tie ir: G3.7 (Novēršamā mirstība, uz 100 000 iedzīvotāju vecumā līdz 75 gadiem), G5.4 (Atšķirība labas vai ļoti labas pašvērtētās veselības īpatsvarā, vīrieši – sievietes, iedzīvotāji vecumā 16 gadi un vairāk, procentu punkti), G7.2 (Iedzīvotāju īpatsvars, kuri nevar pienācīgi apsildīt mājokli pēc nabadzības statusa, %), G9.1 (Nodarbinātība augsto un vidēji augsto tehnoloģiju ražošanā un zināšanu intensīvās pakalpojumu nozarēs; % no kopējās nodarbinātības), G9.2 (Uzņēmumu īpatsvars, kuriem ir ERP programmatūra informācijas apmaiņai starp dažādām funkcijām (10+ darbinieki), G9.8 (MVU īpatsvars ar iekšējām inovāciju aktivitātēm (EIS), G11.4 (raksta par šo informācijas nav) un G16.2 (Tiesu sistēmas uztvertā neatkarība, % iedzīvotāju, kas to vērtē kā ļoti vai diezgan labu). Indekatoru aprakstu man pārtulkoja ChatGPT. Pieliku beigas arī pilno sarakstu.
+Atribūti, kas atlasīti 90–100% gadījumu, ir visuzticamākie AHDI prognozēšanai. Man sanāca, ka tie ir:
+
+- G3.7 (Novēršamā mirstība, uz 100 000 iedzīvotāju vecumā līdz 75 gadiem), 
+- G5.4 (Atšķirība labas vai ļoti labas pašvērtētās veselības īpatsvarā, vīrieši – sievietes, iedzīvotāji vecumā 16 gadi un vairāk, procentu punkti), 
+- G7.2 (Iedzīvotāju īpatsvars, kuri nevar pienācīgi apsildīt mājokli pēc nabadzības statusa, %), 
+- G9.1 (Nodarbinātība augsto un vidēji augsto tehnoloģiju ražošanā un zināšanu intensīvās pakalpojumu nozarēs; % no kopējās nodarbinātības), 
+- G9.2 (Uzņēmumu īpatsvars, kuriem ir ERP programmatūra informācijas apmaiņai starp dažādām funkcijām (10+ darbinieki), 
+- G9.8 (MVU īpatsvars ar iekšējām inovāciju aktivitātēm (EIS), 
+- G11.4 (raksta par šo informācijas nav) un G16.2 (Tiesu sistēmas uztvertā neatkarība, % iedzīvotāju, kas to vērtē kā ļoti vai diezgan labu).
+
+Indikatoru aprakstus sagatavoja ChatGPT. Beigās pieliku arī pilno indikatoru sarakstu.
 
 
-Tagad cilnē "Preprocess", izmantojot filtru unsupervised.attribute.Remove izņemu kolonnas, netika pārskaitīti iepriekšeja rindkopā, t.i. 1-6, 8-15, 17-23, 25-27, 30-33, 35-40, 42-47, 49 (kolonnu numuri). Atstāju arī AHDI kolonnu.
+Tagad cilnē "Preprocess", izmantojot filtru `unsupervised.attribute.Remove`, es izņēmu kolonnas, kas nebija minētas iepriekš, t.i. 1-6, 8-15, 17-23, 25-27, 30-33, 35-40, 42-47, 49 (kolonnu numuri). Atstāju arī AHDI kolonnu.
 
 
-Cilnē "Classify" izvēlos algoritmu `functions.LinearRegression` ar noklusejuma iestatījuemiem.
-
+Cilnē "Classify" izvēlējos algoritmu `functions.LinearRegression` ar noklusējuma iestatījumiem.
 
 ```
-=== Run information ===
-
-Scheme:       weka.classifiers.functions.LinearRegression -S 0 -R 1.0E-8 -num-decimal-places 4
-Relation:     full_df-weka.filters.unsupervised.attribute.Remove-R1-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-weka.filters.unsupervised.attribute.Remove-R1-6,8-15,17-23,25-27,30-33,35-40,42-47,49
 Instances:    27
 Attributes:   9
               G3.7
@@ -174,11 +171,9 @@ Test mode:    10-fold cross-validation
 
 === Classifier model (full training set) ===
 
-
 Linear Regression Model
 
 AHDI =
-
      -0.0001 * G3.7 +
      -0.0021 * G7.2 +
       0.0014 * G9.1 +
@@ -197,22 +192,21 @@ Root mean squared error                  0.0204
 Relative absolute error                 33.0879 %
 Root relative squared error             36.7286 %
 Total Number of Instances               27     
-
 ```
-**Rezultāts**: Izmantojot lineāru regresiju tika iegūts vienādojums no modelī iekļautiem mainīgiem. Vienādojuma netika iekļauti visi mainīgie – indikātori G5.4, G9.8, G11.4 tika atstati malā, jo WEKAS algoritms LinearRegression automātiski veic papildus atribūtu atlasi (parasti izmantojot M5 metodi), lai novērstu multikolinearitāti. 
+**Rezultāts**: Izmantojot lineāro regresiju, tika iegūts vienādojums no modelī iekļautajiem mainīgajiem. Vienādojumā netika iekļauti visi mainīgie – indikatori G5.4, G9.8 un G11.4 tika atstāti malā, jo WEKA algoritms `LinearRegression` automātiski veic papildu atribūtu atlasi, lai novērstu multikolinearitāti.
 
-Iegūtais korelācijas koeficients ir ļoti augsts ~ 0,93, kas nozīme, ka starp izvēlētajiem ilgtspējīgas attīstības indikatoriem un AHDI eksistē ļoti cieša lineāra saistība. Kāpīnot kvadrātā sanāk, ka modelis spēj izskaidrot aptuveni 85,75% ) no AHDI indeksa vērtību variācijas starp ES valstīm. MAE ir maza – 0.016 un RRSE ir 36.7%, kas nav maz, bet ņeemot vēra mazu izlasi, amnnuprāt ir OK. 
+Iegūtais korelācijas koeficients ir ļoti augsts (~0,93), kas nozīmē, ka starp izvēlētajiem ilgtspējīgas attīstības indikatoriem un AHDI pastāv ļoti cieša lineāra saistība. Pacelot koeficientu kvadrātā, modelis spēj izskaidrot aptuveni 85,8% no AHDI indeksa vērtību variācijas starp ES valstīm. MAE ir maza – 0,016, un RRSE ir 36,7%, kas, ņemot vērā nelielo izlases apjomu, manuprāt, ir pieņemami.
 
-Saskaņā ar vienādojuma koeficientiem indikārtoriem G9.1 (Augstās tehnoloģijas), G9.2 (ERP programmatūra) un G16.2 (Tiesu sistēmas neatkarība) ir pozitīa ietekme uz AHDI indeksu– šie rādītāji palielina AHDI. Iespējama interpretācija ir, ka, jo modernāka ir valsts rūpniecība un digitālā vide, jo augstāks ir cilvēka attīstības līmenis. 
+Saskaņā ar vienādojuma koeficientiem indikātoriem G9.1 (Augstās tehnoloģijas), G9.2 (ERP programmatūra) un G16.2 (Tiesu sistēmas neatkarība) ir pozitīva ietekme uz AHDI indeksu – šie rādītāji veicina AHDI pieaugumu. Tas norāda, ka jo modernāka ir valsts rūpniecība un digitālā vide, jo augstāks ir cilvēka attīstības līmenis.
 
-Savukārt indikātoriem G3.7 (Novēršamā mirstība) un G7.2 (Nespēja apsildīt mājokli) ir negatīva ietekme uz AHDI indeksu – pieaugot enerģētiskajai nabadzībai un jo vairāk cilvēku mirst no novēršamām slimībām (jo vājāka ir veselības sistēma) - vairāk samazinās AHDI indekss.
+Savukārt indikātori G3.7 (Novēršamā mirstība) un G7.2 (Nespēja apsildīt mājokli) ietekmē AHDI negatīvi – pieaugot enerģētiskajai nabadzībai un novēršamai mirstībai (kas liecina par vāju veselības sistēmu), AHDI indekss samazinās.
 
-Vienīgais, cik es saprotu WEKA automatiski neparbauda lineāras regressijas priekšnosacījumus. Pakonsultejos ar Gemini, viņa teica "WEKA ir datizraces (data mining) rīks, un tās filozofija atšķiras no klasiskās statistikas programmatūras (piemēram, SPSS vai R lm funkcijas). Tā koncentrējas uz prognozēšanas precizitāti, nevis uz teorētisko modeļa "pareizību"." Nu labi, ar sievieti, kas Tev palīdz labāk nestrideties, lai ir kā viņa saka.
-
-
+Vienīgais, cik saprotu, WEKA automātiski nepārbauda lineārās regresijas priekšnosacījumus. Pakonsultējoties ar Gemini, viņa norādīja: "WEKA ir datizraces (data mining) rīks, un tās filozofija atšķiras no klasiskās statistikas programmatūras (piemēram, SPSS vai R lm funkcijas). Tā koncentrējas uz prognozēšanas precizitāti, nevis uz teorētisko modeļa "pareizību"". Nu labi, ar sievieti, kas tev palīdz, labāk nestrīdēties — lai ir, kā viņa saka.
 
 
-Tagad gribu salidzināt rezultatu ar meta-algoritmiem. Cilnē "Classify" izvēlos meta-algoritmu `Bagging`. Kā bāzes algoritmu izvēlos functions.LinearRegression un numIterations = 10. Pārbaudes režims - krusteniska validācija.
+## Meta-algoritmi
+
+Tagad vēlos salīdzināt rezultātus ar meta-algoritmiem. Cilnē "Classify" izvēlos meta-algoritmu `Bagging`, kā bāzes algoritmu izmantoju `functions.LinearRegression`, ar `numIterations = 10`. Pārbaudes režīms ir krusteniskā validācija.
 
 ```
 === Cross-validation ===
@@ -224,45 +218,137 @@ Root mean squared error                  0.0188
 Relative absolute error                 29.2903 %
 Root relative squared error             33.7816 %
 Total Number of Instances               27     
-
 ```
 
-Izmantojot meta-algoritmu `Bagging` korelācijas koeficients piauga no 0.9263 uz 0.9364 un MAE samazinājas līdz 0.0142.
+Izmantojot meta-algoritmu `Bagging`, korelācijas koeficients pieauga no 0.9263 līdz 0.9364, savukārt MAE samazinājās līdz 0.0142.
+
+Manuprāt, iegūtie rezultāti atbilst mērķim – atrast pēc iespējas mazāku raksturlielumu apakškopu, no kuras katrai valstij AHDI varētu pietiekami precīzi aprēķināt. Kursa uzdevumā bija norādīts izmantot pēc iespējas vairāk kursā apskatīto algoritmu, taču es pielietoju tos, kas kursā tika konceptuāli pieminēti, bet nefigurēja mājasdarbos. Tāpēc es vēl pievienošu kādu papildus algoritmu, lai segtu šo prasību.
+
+## Galveno komponentu analīze (PCA)
+
+„Jau vairākas reizes esmu sniegusi PCA aprakstu, šoreiz to izlaižu. Aprēķinu visu nepieciešamo un pārbaudu galveno komponentu nozīmīgumu, izmantojot Kaisera–Guttmana kriteriju. Apskatu, kuriem indikatoriem pirmajās trīs komponentēs ir lielāki svari.
+
+```{r }
+pca_res <- prcomp(X_scaled)
+eigen_values <- pca_res$sdev^2
+plot(eigen_values, type = "b", main = "PCA Scree Plot", 
+     xlab = "Komponente", ylab = "Īpašvērtība (Eigenvalue)")
+eigen_values[eigen_values > mean(eigen_values)]
+
+#summary(pca_res) #daudz teksta
+f <- pca_res$rotation
+thr <- 0.15
+
+pc123_strong <- lapply(1:3, function(i) {
+  load <- f[, i]
+  load[abs(load) > thr]
+})
+
+names(pc123_strong) <- paste0("PC", 1:3)
+pc123_strong
+```
+
+Rezultāts: Saskaņā ar Kaisera–Guttmana kritēriju nozīmīgas ir 9 asis.
+
+```
+Importance of components:
+                          PC1    PC2     PC3     PC4     PC5     PC6
+Standard deviation     3.7493 2.4652 2.08613 1.81808 1.67735 1.57662
+Proportion of Variance 0.2869 0.1240 0.08882 0.06746 0.05742 0.05073
+Cumulative Proportion  0.2869 0.4109 0.49972 0.56718 0.62459 0.67532
+                           PC7     PC8     PC9    PC10    PC11    PC12
+Standard deviation     1.48352 1.42362 1.37580 1.21968 1.10721 1.05815
+Proportion of Variance 0.04492 0.04136 0.03863 0.03036 0.02502 0.02285
+Cumulative Proportion  0.72024 0.76160 0.80023 0.83059 0.85561 0.87846
+```
+
+Visas 9 nozīmīgās komponentes kopā izskaidro 80 % no kopējās datu variācijas (nevis AHDI variācijas, kā tas bija ar uzraudzīto mācīšanos WEKA, jo šeit AHDI esmu izslēgusi). Savukārt pirmās 3 komponentes kopā izskaidro 49,97 % no kopējās datu variācijas.
+
+Faktoru ir daudz, tāpēc nav iespējams ievietot visu faktoru koeficientus katrai galvenajai komponentei. Tāpēc interpretēšu koeficientus tikai pirmajām trim komponentēm, ignorējot pārējos faktorus to lielā skaita dēļ.
+
+Pirmajā komponentē daļai indikatoru, kuru koeficienti ir ≥ 0,15, ietilpst: G4.4 (Pieaugušo izglītība) (0.21), G4.3 (Augstākā izglītība) (0.19), G9.1 (nodarbinātība augsto tehnoloģiju ražošanā) (0.21), G9.6–G9.9 (Inovācijas aktivitātes) (0.18 - 0.21), G8.2 (Jaunievēlētie darbinieki) (0,20) un G5.5 / G5.6 (Sieviešu politiskā pārstāvniecība) (0.15-0.17). Indikātori ar koeficientiem <=0,15: G3.6 (Mirstība līdz 5 gadu vecumam) (-0.18), G3.7 (Novēršamā mirstība) (-0.17), G6.1 / G6.2 (Slikti mājokļa apstākļi) (-0.17 - -0,18) un G5.3 (Dzimumu nodarbinātības atšķirība) ( -0.16). Šī komponente raksturo vispārējos sociāli ekonomiskos aspektus un cilvēku attīstības un labklājības līmeni. Lai gan aprakstā nav minēti visi indikatori, svarīgi atzīmēt, ka ar slieksni 0,15 pirmā komponente iekļauj 7 no 8 ar WEKA atribūtu selekciju atlasītajiem mainīgajiem (tostarp 4 no 5, kas izvēlēti regresijas modelim).
+
+Otru komponenti veido šādi indikatori: G5.2 (Dzimumu atšķirības izglītībā) (0.32), G7.1 (Atjaunojamā enerģija) (0.28), G3.7 (Novēršamā mirstība) (0.25), G5.3 (Dzimumu nodarbinātības atšķirība) (-0.23), G3.1 (Pašvērtētā veselība) (-0.31). Šī komponente atdala valstis pēc sociālās struktūras un atspoguļo sociālās nevienlīdzības, enerģētikas un veselības aspektus.
+
+
+Trešo komponenti veido šādi indikatori: G8.3 (Ilgtermiņa bezdarbs) (0.34), G9.9 (Inovāciju izdevumi) (0.23), G3.3 (Neapmierinātas medicīniskās vajadzības) (0.26). Tā drīzāk raksturo nestabilitāti un pārejas procesus.
+
+
+Vieglais gals – te ir interesanti.
+
+
+27. komponentes īpašvērtība ir 2.772248e-30 jeb 0.000000000000000000000000000002772248, kas, manuprāt, ir pietiekami tuvu nullei. To visvairāk veido mainīgie: G3.5 (Jaundzimušo mirstība) (-0.33), G4.1 (Priekšlaicīga izglītības pamešana) (-0.28), G4.3 (Augstākā izglītība) (-0.22), G9.3 (Rūpniecības pievienotā vērtība) (-0.21), G12.1 (Pašvaldību atkritumu pārstrāde) (-0.20), G4.4 (Pieaugušo mūžizglītība) (0.29), G13.2 (Vides piesārņojuma problēmas) (0.28), G6.2 (Nav iekštelpu tualetes) (0.23), G4.5 (STEM absolventi) (0.21), G11.4 (Smaga mājokļa deprivācija) (0.20), 
+G3.6 (Bērnu mirstība līdz 5 gadiem) (0.20).
+
+Saskaņā ar jūsu metodiku tas, ka 27. komponentes īpašvērtība ir tuvu nullei, liecina par stingru lineāru saistību starp indikatoriem, kuriem šajā komponentē ir piešķirts liels svars. Tas nozīmē, ka šie rādītāji dublē informāciju par valstu sociālekonomisko stāvokli, un dimensiju redukcijas procesā tie ir savstarpēji aizvietojami, ļaujot AHDI prognozēšanā izmantot tikai reprezentatīvākos no tiem.
+
+No visiem šiem indikatoriem WEKA atribūtu selekcija atlasīja tikai vienu – G11.4 (smaga mājokļa deprivācija).
 
 
 
-Manuprāt iegūtie rezultati izpilda mērķi atrast pēc iespējas mazāku raksturlielumu apakškopu, no kuras katrai valstij AHDI varētu pietiekami precīzi aprēķināt. Bet bija twikts izmantot pēc iespējas vairāk kursa apskatīto algorritmu, bet es pielietoju tos, kuri kursa bija konceptuāli pieminēti, bet nefigurēja mājas darbos, tādēļ ################.
+## Faktoru analīze
+
+Lai WEKAS atlasītajai (regresijā iekļauto faktoru) apakškopai piešķirtu nosaukumu :-).
+
+```{r fa}
+weka_subset <- c("G3.7", "G7.2", "G9.1", "G9.2", "G16.2")
+X_subset <- X_scaled[, weka_subset]
+
+fa_res <- factanal(X_subset, factors = 2, rotation = "varimax")
+print(fa_res$loadings, cutoff = 0.4)
+```
+
+Iespējamā interpretācija: 
+
+1. faktors: Tehnoloģiskās attīstības un efektivitātes faktors, kas izskaidro aptuveni 31,5% no datu kopējās variācijas. Tajā dominē indikatori: G9.2 (ERP programmatūra uzņēmumos) (0,811), kas norāda uz uzņēmējdarbības procesu digitalizāciju; G3.7 (Novēršamā mirstība) (-0,637), kur negatīvs svars liecina, ka pieaugot tehnoloģiskajam līmenim, mirstība samazinās; un G16.2 (Tiesu sistēmas neatkarība) (0,541), kas liecina, ka stabila tiesiskā vide ir saistīta ar tehnoloģisko attīstību.
+
+2. faktors: Zināšanu ekonomikas un sociālās ilgtspējas faktors izskaidro aptuveni 31,2% no variācijas. Šajā faktorā dominē G9.1 (Nodarbinātība augsto tehnoloģiju nozarēs) (0,839) kā galvenais aspekts, G7.2 (Nespēja apsildīt mājokli) (-0,691), kas negatīvi korelē un, iespējams, liecina, ka valstīs ar augstu zināšanu ekonomikas īpatsvaru enerģētiskā nabadzība ir zemāka, kā arī G16.2 (Tiesu sistēmas neatkarība) (0,506), norādot uz tiesiskuma nozīmi.
+
+Interesanti, ka G16.2 ir vienīgais indikators ar svaru virs 0,50 abos faktoros. To var interpretēt kā apliecinājumu, ka tiesu sistēmas neatkarība ir fundamentāls rādītājs, kas ietekmē gan tehnoloģisko uzņēmējdarbību, gan zināšanu ekonomiku, un kalpo par pamatu visai AHDI indeksa struktūrai. Savukārt G7.2 un G3.7 ar negatīvajiem svariem rāda, ka AHDI pieaugums visstraujāk notiek, kad valsts pāriet no pamata vajadzību nodrošināšanas uz augsto tehnoloģiju ekonomiku.
 
 
 
+## t-SNE un UMAP
+
+Lai apskatītu datus.
+
+```{r tsne_umap}
+#t-SNE
+set.seed(42)
+tsne_out <- Rtsne(X_scaled, perplexity = 5)
+
+plot(tsne_out$Y, col = "steelblue", pch = 16, main = "t-SNE (perplexity=10)",
+     xlim = range(tsne_out$Y[,1]) + c(-5, 5),
+     ylim = range(tsne_out$Y[,2]) + c(-5, 5))
+text(tsne_out$Y, labels = rownames(analysis_df), cex = 0.5, pos = 4)
+
+#UMAP
+umap_out <- umap(X_scaled, n_neighbors = 5)
+xrange <- range(umap_out$layout[,1])
+yrange <- range(umap_out$layout[,2])
+xpad <- 0.05 * diff(xrange)
+ypad <- 0.05 * diff(yrange)
+
+plot(umap_out$layout, col="firebrick", pch=16,
+     main="UMAP (n_neighbors=5)",
+     xlim=c(xrange[1]-xpad, xrange[2]+xpad),
+     ylim=c(yrange[1]-ypad, yrange[2]+ypad))
+
+text(umap_out$layout, labels=rownames(analysis_df), cex=0.6, pos=3)
+```
+
+Abos grafikos izvietojums ir loģisks – Zviedrija, Dānija un Somija atrodas blakus viena otrai, Latvija un Lietuva arī (un vispār valstis, kuru AHDI rādītāji ir līdzīgi). Tas norāda, ka dati ir strukturēti un līdz ar to reducējami.
 
 
 
+P.S.
+Tas gan nav „pēc iespējas vairāk kursā apskatīto metožu”, taču es arī neredzu jēgu pielietot daudz algoritmu, kas beigās dos vienu un to pašu rezultātu un vienkārši jāapkopo vispārīgā aprakstā. Tagad, manuprāt, sanāca labi — dažādas metodes ar dažādiem mērķiem, un, saliekot tās kopā, izveidojas diezgan sakarīgs rezultāts.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Indikātoru atšifrējums angliski un latviski
+# Pielikums – Indikātoru atšifrējums angliski un latviski
 
 *G3 – Veselība*
+
 G3.1 Share of people with good or very good perceived health, % of population aged 16 or over – Labas vai ļoti labas pašvērtētās veselības īpatsvars, % iedzīvotāju vecumā 16 gadi un vairāk (Eurostat)
 G3.2 Obesity rate by body mass index (BMI), % of population aged 18 or over – Aptaukošanās līmenis pēc ķermeņa masas indeksa (ĶMI), % iedzīvotāju vecumā 18 gadi un vairāk (Eurostat)
 G3.3 Self-reported unmet needs for medical examination and care, % of population aged 16 or over – Pašnovērtētas neatbilstošas medicīniskās aprūpes vajadzības, % iedzīvotāju vecumā 16 gadi un vairāk (Eurostat)
